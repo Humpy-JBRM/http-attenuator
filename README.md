@@ -51,7 +51,7 @@ You might want to normalise all requests and responses, rather than having to wr
 
 This is why broker mode exists.  Instead of specifying the exact endpoint like you would do in proxy mode, you just say which service you want to hit and the attenuator will route it according to the rules you've configured:
 
-    `http://{GATEWAY_ADDRESS}/api/v1/broker/{SERVICE}`
+    http://{GATEWAY_ADDRESS}/api/v1/broker/{SERVICE}
 
 
 ### Failure Simulation Mode
@@ -104,19 +104,25 @@ If you are a SaaS business, you can use reverse proxy mode to do consumption-bas
 
 ## Getting started (forward proxy mode)
 
-    `docker run -p 8888:8888 migaloo/http-attenuator:latest`
+    docker build -t attenuator:latest .
+
+    docker run -p 8888:8888 attenuator:latest
 
 now just make your requests to
 
-    `http://localhost:8888/api/v1/gateway/{URL_AND_PARAMS}`
+    http://localhost:8888/api/v1/gateway/{URL_AND_PARAMS}
 
 and your requests will be proxed (with default retry and timeout settings).
+
+For example, try fetching the google home page:
+
+    curl http://localhost:8888/api/v1/gateway/https://google.com
 
 ## Simple Usage (forward proxy mode)
 
 Just make your request to
 
-    `http://{GATEWAY_ADDRESS}/api/v1/gateway/{URL_AND_PARAMS}`
+    http://{GATEWAY_ADDRESS}/api/v1/gateway/{URL_AND_PARAMS}
 
 The gateway will act as a forward proxy and will communicate with the service at `{URL_AND_PARAMS}`,
 returning the response.

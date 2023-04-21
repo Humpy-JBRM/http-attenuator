@@ -16,6 +16,15 @@ Http-attenuator runs as a API gateway providing:
 
     - recording / saving requests and responses
 
+## MVP
+    - forward proxy mode
+
+    - service broker mode (which also gives reverse proxy)
+
+    - promana integration
+
+    - circuit-break + attenuation + retry
+    
 ## Why You Would Use This
 
 ### Gateway (forward proxy) Mode

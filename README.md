@@ -96,6 +96,12 @@ It will integrate with ELK, LogStash, DataDog, StackDriver or any other logging 
 
 Point your prometheus config at http://{GATEWAY_ADDRESS}/metrics to start scraping.
 
+If you add a header to your request of:
+
+    X-Migaloo-Tag: foo
+
+then this tag is available as a prometheus label.
+
 ### RBAC, Access Control and PBAC
 Role-based access control is built-in to the attenuator so you can easily control access to services.
 

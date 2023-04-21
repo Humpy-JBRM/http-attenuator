@@ -24,7 +24,9 @@ Http-attenuator runs as a API gateway providing:
     - promana integration
 
     - circuit-break + attenuation + retry
-    
+
+    - basic "best" selection (for some definition of "best")
+
 ## Why You Would Use This
 
 ### Gateway (forward proxy) Mode

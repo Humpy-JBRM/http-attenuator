@@ -34,19 +34,19 @@ func init() {
 		pulse: nil,
 	})
 
+	pulse, err := NewPulse(
+		"www.google.com",
+		10, // number of workers / size of pulses channel
+		1,  // pulse hertz
+		0,  // target hertz (this is TODO)
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 	RegisterTrafficLight(&TrafficLightImpl{
-		Name: "whisper",
-		// assume 1 worker, pulse is 2 per second
-		//
-		// TODO(james): make the first parameter equal to the number of whisper transcribe workers
-		//
-		// TODO(james): make the second parameter equal to the GLOBAL RATE LIMIT.
-		//              NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
-		//
-		//				THIS VALUE IS IN HERTZ
-		//
-		//				A VALUE OF ZERO DISABLES THE RATE LIMIT
-		pulse: NewPulse(10, 1, 0),
+		Name: "www.google.com",
+		// assume 10 workers, pulse is 1 per second
+		pulse: pulse,
 	})
 }
 
@@ -55,10 +55,12 @@ func RegisterTrafficLight(t *TrafficLightImpl) {
 }
 
 func WaitForGreen(trafficLightName string, attemptNumber int) {
-	log.Printf("Waiting for %s (attempt %d)", trafficLightName, attemptNumber)
 	if tl := trafficLightInstance[strings.ToLower(trafficLightName)]; tl != nil {
+		log.Printf("Waiting for %s (attempt %d)", trafficLightName, attemptNumber)
 		tl.WaitForGreen(attemptNumber)
-	} else {
-		panic("*")
+		return
 	}
+
+	// No traffic light / no attenuation
+	log.Printf("No traffic light for %s (attempt %d)", trafficLightName, attemptNumber)
 }

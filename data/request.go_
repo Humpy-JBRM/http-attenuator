@@ -6,12 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// SuccessFunc returns two bools:
-//
-//	bool	true == Success
-//	bool	true == retry (only applies if success is false)
-type SuccessFunc func(resp *http.Response) (bool, bool)
-
 type HttpRequest struct {
 	Id      string        `json:"id"`
 	Req     *http.Request `json:"req"`

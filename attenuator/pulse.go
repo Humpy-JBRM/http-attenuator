@@ -1,7 +1,13 @@
 package attenuator
 
 import (
+	"fmt"
+	"strings"
+	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // A Pulse emits a heartbeat every N milliseconds.
@@ -23,6 +29,7 @@ type Pulse interface {
 }
 
 type PulseImpl struct {
+	name       string
 	numWorkers int
 	maxHertz   float64
 	pulseChan  chan (bool)
@@ -37,8 +44,34 @@ type PulseImpl struct {
 	waitUntil *time.Time
 }
 
-func NewPulse(numWorkers int, maxHertz float64, targetHertz float64) Pulse {
+var pulses = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pulse",
+		Help:      "The pulse heartbeats, keyed by pulse name",
+	},
+	[]string{"name", "hertz"},
+)
+
+var pulseRegistry map[string]Pulse = map[string]Pulse{}
+var prMutex sync.RWMutex
+
+func GetPulse(name string) Pulse {
+	prMutex.RLock()
+	defer prMutex.RUnlock()
+	return pulseRegistry[strings.ToLower(name)]
+}
+
+func NewPulse(name string, numWorkers int, maxHertz float64, targetHertz float64) (Pulse, error) {
+	prMutex.RLock()
+	if _, exists := pulseRegistry[strings.ToLower(name)]; exists {
+		prMutex.RUnlock()
+		return nil, fmt.Errorf("Pulse '%s' already exists", name)
+	}
+	prMutex.RUnlock()
+
 	pulse := &PulseImpl{
+		name:            name,
 		numWorkers:      numWorkers,
 		maxHertz:        maxHertz,
 		targetRateHertz: targetHertz,
@@ -47,6 +80,9 @@ func NewPulse(numWorkers int, maxHertz float64, targetHertz float64) Pulse {
 	if targetHertz <= 0 {
 		pulse.targetRateHertz = pulse.maxHertz
 	}
+	prMutex.Lock()
+	pulseRegistry[strings.ToLower(name)] = pulse
+	prMutex.Unlock()
 
 	// Kick off the pulse
 	go func(p *PulseImpl) {
@@ -58,6 +94,7 @@ func NewPulse(numWorkers int, maxHertz float64, targetHertz float64) Pulse {
 		for {
 			if sleepTimeMillis <= 0 {
 				// always a green light
+				pulses.WithLabelValues(p.name, fmt.Sprintf("%.2f", p.maxHertz)).Inc()
 				p.pulseChan <- true
 				continue
 			}
@@ -68,6 +105,7 @@ func NewPulse(numWorkers int, maxHertz float64, targetHertz float64) Pulse {
 				if sleepDurationNano > 0 {
 					time.Sleep(time.Duration(sleepDurationNano) * time.Nanosecond)
 				}
+				pulses.WithLabelValues(p.name, fmt.Sprintf("%.2f", p.maxHertz)).Inc()
 				p.pulseChan <- true
 				p.waitUntil = nil
 				continue
@@ -78,7 +116,7 @@ func NewPulse(numWorkers int, maxHertz float64, targetHertz float64) Pulse {
 			p.pulseChan <- true
 		}
 	}(pulse)
-	return pulse
+	return pulse, nil
 }
 
 func (p *PulseImpl) WaitForNext() {

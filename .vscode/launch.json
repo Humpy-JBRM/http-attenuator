@@ -5,20 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Proxy",
+            "name": "Launch Package",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
-            "args": ["proxy"],
+            "program": "${fileDirname}"
         },
         {
-            "name": "Metrics",
+            "name": "Gateway",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "args": ["metrics"],
-        }
+            "args": ["gateway"],
+        },
     ]
 }

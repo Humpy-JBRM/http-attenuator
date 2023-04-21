@@ -1,3 +1,5 @@
 config:
-  proxy:
+  attenuator:
+    queue_size: 100
+  gateway:
     listen: 0.0.0.0:8888

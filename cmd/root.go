@@ -30,8 +30,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "f", "config.yml", "config file (default is config.yml)")
 
-	rootCmd.AddCommand(proxyCmd)
-	rootCmd.AddCommand(metricsCmd)
+	rootCmd.AddCommand(gatewayCmd)
 
 	// Microservices
 }

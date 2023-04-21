@@ -9,9 +9,7 @@ import (
 type AttenuatorCallback func(result AttenuatorResult) error
 
 type Attenuator interface {
-	Stop()
-	DoSync(req *data.HttpRequest) (*data.HttpResponse, error)
-	DoAsync(req *data.HttpRequest, callback AttenuatorCallback) error
+	DoSync(req *data.GatewayRequest) (*data.GatewayResponse, error)
 	GetName() string
 	GetMaxHertz() float64
 	GetTargetHertz() float64
@@ -19,22 +17,22 @@ type Attenuator interface {
 }
 
 type AttenuatorResult interface {
-	GetRequest() *data.HttpRequest
-	GetResponse() *data.HttpResponse
+	GetRequest() *data.GatewayRequest
+	GetResponse() *data.GatewayResponse
 	GetError() error
 }
 
 type attenuatorResult struct {
-	Request  *data.HttpRequest
-	Response *data.HttpResponse
+	Request  *data.GatewayRequest
+	Response *data.GatewayResponse
 	Error    error
 }
 
-func (a *attenuatorResult) GetRequest() *data.HttpRequest {
+func (a *attenuatorResult) GetRequest() *data.GatewayRequest {
 	return a.Request
 }
 
-func (a *attenuatorResult) GetResponse() *data.HttpResponse {
+func (a *attenuatorResult) GetResponse() *data.GatewayResponse {
 	return a.Response
 }
 

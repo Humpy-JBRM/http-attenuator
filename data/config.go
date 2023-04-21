@@ -1,6 +1,6 @@
 package data
 
 const (
-	CONF_METRICS_LISTEN = "config.metrics.listen"
-	CONF_PROXY_LISTEN   = "config.proxy.listen"
+	CONF_ATTENUATOR_QUEUESIZE = "config.attenuator.queue_size"
+	CONF_GATEWAY_LISTEN       = "config.gateway.listen"
 )

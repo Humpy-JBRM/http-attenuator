@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"http-attenuator/util"
+	"net/http"
 	"strings"
 	"sync"
 )
@@ -16,8 +17,8 @@ import (
 //
 // We could equally use mocks for this, but that's too heavyweight
 // for this one particular case.
-type httpPostFunc func(theUrl string, payload []byte, header ...string) (int, []byte, map[string]string, error)
-type httpGetFunc func(url string, header ...string) (int, []byte, map[string]string, error)
+type httpPostFunc func(theUrl string, payload []byte, headers http.Header) (int, []byte, http.Header, error)
+type httpGetFunc func(url string, headers http.Header) (int, []byte, http.Header, error)
 type backoffFunc func(attemptNumber int)
 
 type httpClientWithBackoff struct {

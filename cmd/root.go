@@ -30,6 +30,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "f", "config.yml", "config file (default is config.yml)")
 
+	rootCmd.AddCommand(brokerCmd)
 	rootCmd.AddCommand(gatewayCmd)
 
 	// Microservices

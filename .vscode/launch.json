@@ -12,6 +12,14 @@
             "program": "${fileDirname}"
         },
         {
+            "name": "Broker",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "args": ["broker"],
+        },
+        {
             "name": "Gateway",
             "type": "go",
             "request": "launch",

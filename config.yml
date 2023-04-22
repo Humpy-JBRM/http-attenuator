@@ -1,5 +1,12 @@
 config:
   attenuator:
     queue_size: 100
+  broker:
+    listen: 0.0.0.0:8888
+    upstream:
+      "wibble":
+        backend1: http://192.168.1.98:8000
+        backend2: http://192.168.1.98:8001
+        rule: random
   gateway:
     listen: 0.0.0.0:8888

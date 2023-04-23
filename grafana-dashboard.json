@@ -118,7 +118,7 @@
           "refId": "A"
         }
       ],
-      "title": "Service Broker",
+      "title": "Service Broker Requests per second",
       "type": "timeseries"
     },
     {
@@ -211,7 +211,7 @@
           "refId": "A"
         }
       ],
-      "title": "Gateway Requests",
+      "title": "Gateway Requests per second",
       "type": "timeseries"
     },
     {
@@ -283,6 +283,72 @@
       ],
       "title": "Alexa1m Backends",
       "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VHntH_PVk"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.4.7",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "VHntH_PVk"
+          },
+          "editorMode": "code",
+          "expr": "sum by (customer) (migaloo_broker_cost / 100)",
+          "legendFormat": "{{customer}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Service Broker Revenue by Customer (£)",
+      "type": "stat"
     }
   ],
   "refresh": "5s",
@@ -294,14 +360,14 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "HSAK",
   "uid": "DGOVc_P4z",
-  "version": 5,
+  "version": 6,
   "weekStart": ""
 }
 

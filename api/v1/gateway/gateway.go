@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"http-attenuator/data"
 	"io"
 	"log"
 	"net/http"
@@ -40,26 +41,26 @@ var gatewayResponses = promauto.NewCounterVec(
 )
 
 func GatewayHandler(c *gin.Context) {
-	nowMillis := time.Now().UnixMilli()
+	nowMillis := time.Now().UTC().UnixMilli()
 	defer func() {
 		gatewayRequestsLatency.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
-			c.Request.Host,
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			"",
 			c.Request.Method,
-		).Add(float64(time.Now().UnixMilli() - nowMillis))
+		).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	}()
 
 	// Extract the host from the URL
 	gatewayRequests.WithLabelValues(
-		c.Request.Header.Get("X-migaloo-tag"),
-		c.Request.Host,
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		"",
 		c.Request.Method,
 	).Inc()
 	hostAndQuery := c.Param("hostAndQuery")
 	if hostAndQuery == "" {
 		gatewayResponses.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
-			c.Request.Host,
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			"",
 			c.Request.Method,
 			fmt.Sprint(http.StatusNotFound),
 		).Inc()
@@ -74,8 +75,8 @@ func GatewayHandler(c *gin.Context) {
 	hostAndQueryUrl, err := url.Parse(hostAndQuery)
 	if err != nil {
 		gatewayResponses.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
-			c.Request.Host,
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			hostAndQueryUrl.Host,
 			c.Request.Method,
 			fmt.Sprint(http.StatusBadRequest),
 		).Inc()
@@ -97,9 +98,10 @@ func GatewayHandler(c *gin.Context) {
 	resp, err := client.Do(&request)
 	if err != nil {
 		log.Printf("%s: %s", hostAndQuery, err.Error())
+		c.Writer.Header().Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 		gatewayResponses.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
-			c.Request.Host,
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			hostAndQueryUrl.Host,
 			c.Request.Method,
 			fmt.Sprint(http.StatusBadGateway),
 		).Inc()
@@ -111,8 +113,8 @@ func GatewayHandler(c *gin.Context) {
 
 	// Send the status
 	gatewayResponses.WithLabelValues(
-		c.Request.Header.Get("X-migaloo-tag"),
-		c.Request.Host,
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		hostAndQueryUrl.Host,
 		c.Request.Method,
 		fmt.Sprint(resp.StatusCode),
 	).Inc()

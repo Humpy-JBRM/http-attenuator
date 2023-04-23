@@ -45,7 +45,7 @@ func testGetStringDefault(t *testing.T, cf ConfigManager, name string, defaultVa
 	}
 }
 
-func testSetGetInt(t *testing.T, cf ConfigManager, name string, value int) {
+func testSetGetInt(t *testing.T, cf ConfigManager, name string, value int64) {
 	i, err := cf.GetInt(name)
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func testSetGetInt(t *testing.T, cf ConfigManager, name string, value int) {
 	}
 }
 
-func testGetIntDefault(t *testing.T, cf ConfigManager, name string, defaultValue int) {
+func testGetIntDefault(t *testing.T, cf ConfigManager, name string, defaultValue int64) {
 	i, err := cf.GetInt(name)
 	if err != nil {
 		t.Fatal(err)

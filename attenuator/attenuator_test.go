@@ -24,7 +24,7 @@ func TestSimpleGetSync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	start := time.Now().UnixMilli()
+	start := time.Now().UTC().UnixMilli()
 	url, _ := url.Parse("https://www.google.com")
 
 	count := 0
@@ -58,7 +58,7 @@ func TestSimpleGetSync(t *testing.T) {
 			t.Errorf("Expected body to contain '%s', but body is nil", needle)
 		}
 	}
-	end := time.Now().UnixMilli()
+	end := time.Now().UTC().UnixMilli()
 	expectedDuration := int64(1000 * float64(iterations) / hertz)
 	slop := expectedDuration / 5
 	actualDuration := (end - start)
@@ -81,7 +81,7 @@ func TestSimpleGetSync(t *testing.T) {
 // 		t.Fatal(err)
 // 	}
 
-// 	start := time.Now().UnixMilli()
+// 	start := time.Now().UTC().UnixMilli()
 // 	url, _ := url.Parse("https://www.google.com")
 
 // 	// THE HEAVY LIFTING
@@ -110,7 +110,7 @@ func TestSimpleGetSync(t *testing.T) {
 // 			t.Errorf("Expected body to contain '%s', but got body\n%s", needle, haystack)
 // 		}
 // 	}
-// 	end := time.Now().UnixMilli()
+// 	end := time.Now().UTC().UnixMilli()
 // 	expectedDuration := int64(1000 * float64(iterations) / hertz)
 // 	slop := expectedDuration / 5
 // 	actualDuration := (end - start)
@@ -133,7 +133,7 @@ func TestSimpleGetSync(t *testing.T) {
 // 		t.Fatal(err)
 // 	}
 
-// 	start := time.Now().UnixMilli()
+// 	start := time.Now().UTC().UnixMilli()
 // 	url, _ := url.Parse("https://www.google.com")
 
 // 	// THE HEAVY LIFTING
@@ -173,7 +173,7 @@ func TestSimpleGetSync(t *testing.T) {
 // 			t.Errorf("Expected body to contain '%s', but got body\n%s", needle, haystack)
 // 		}
 // 	}
-// 	end := time.Now().UnixMilli()
+// 	end := time.Now().UTC().UnixMilli()
 // 	expectedDuration := int64(1000 * float64(iterations) / hertz)
 // 	slop := expectedDuration / 5
 // 	actualDuration := (end - start)

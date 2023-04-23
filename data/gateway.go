@@ -17,6 +17,9 @@ type GatewayBase struct {
 	// For tracing
 	Id string `json:"id"`
 
+	// For tracing / replaying / organising
+	WhenMillis int64 `json:"timestamp"`
+
 	// The URL
 	Url url.URL `json:"url"`
 

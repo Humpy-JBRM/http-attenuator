@@ -6,6 +6,7 @@ import (
 	"http-attenuator/data"
 	"log"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -32,15 +33,22 @@ func RunBroker(cmd *cobra.Command, args []string) {
 		log.Fatalf("FATAL|cmd.runServer()|Could not start service broker|%s", err.Error())
 	}
 
-	// Add the broker endpoint
-	ginRouter.GET("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.DELETE("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.OPTIONS("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.POST("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.PUT("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
+	// Add the endpoints
+	configEndpoints(ginRouter)
+
+	// Add the broker endpoints
+	brokerEndpoints(ginRouter)
 
 	err = ginRouter.Run(brokerAddress)
 	if err != nil {
 		log.Printf("FATAL|cmd.runServer()|Could not start service broker|%s", err.Error())
 	}
+}
+
+func brokerEndpoints(ginRouter *gin.Engine) {
+	ginRouter.GET("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
+	ginRouter.DELETE("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
+	ginRouter.OPTIONS("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
+	ginRouter.POST("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
+	ginRouter.PUT("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
 }

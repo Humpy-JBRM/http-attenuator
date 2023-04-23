@@ -12,12 +12,14 @@ package facade
 type ConfigApi interface {
 	GetString(string, ...string) (string, error)
 	GetStringArray(string, ...[]string) ([]string, error)
-	GetInt(string, ...int) (int, error)
+	GetInt(string, ...int64) (int64, error)
+	GetFloat(string, ...float64) (float64, error)
 	GetBool(string, ...bool) (bool, error)
 	GetSecret(string, ...string) (string, error)
 	GetValue(string) (interface{}, error)
 	SetString(string, string) error
-	SetInt(string, int) error
+	SetInt(string, int64) error
+	SetFloat(string, float64) error
 	SetBool(string, bool) error
 	GetAllValues(root string) (map[string]string, error)
 }

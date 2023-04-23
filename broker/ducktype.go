@@ -4,6 +4,6 @@ import (
 	"http-attenuator/data"
 )
 
-type Gateway interface {
+type BrokeredService interface {
 	DoSync(req *data.GatewayRequest) error
 }

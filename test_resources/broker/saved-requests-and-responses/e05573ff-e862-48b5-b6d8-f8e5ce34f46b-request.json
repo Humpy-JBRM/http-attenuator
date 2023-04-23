@@ -1,0 +1,23 @@
+{
+  "id": "e05573ff-e862-48b5-b6d8-f8e5ce34f46b",
+  "timestamp": 1682255018338,
+  "url": {
+    "Scheme": "https",
+    "Opaque": "",
+    "User": null,
+    "Host": "www.bing.com",
+    "Path": "",
+    "RawPath": "",
+    "OmitHost": false,
+    "ForceQuery": false,
+    "RawQuery": "q=wibble",
+    "Fragment": "",
+    "RawFragment": ""
+  },
+  "headers": {
+    "X-Alizee": [
+      "wiggle"
+    ]
+  },
+  "method": "GET"
+}

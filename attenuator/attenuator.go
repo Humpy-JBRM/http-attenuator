@@ -98,9 +98,9 @@ func NewAttenuator(name string, maxHertz float64, targetHertz float64, workers i
 
 func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, error) {
 	// wait for green light
-	nowMillis := time.Now().UnixMilli()
+	nowMillis := time.Now().UTC().UnixMilli()
 	WaitForGreen(a.name, 1)
-	attenuatedRequestsWaiting.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UnixMilli() - nowMillis))
+	attenuatedRequestsWaiting.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	attenuatedRequests.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Inc()
 
 	// Do the request
@@ -117,16 +117,16 @@ func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, er
 			break
 		}
 
-		nowMillis := time.Now().UnixMilli()
+		nowMillis := time.Now().UTC().UnixMilli()
 		code, body, headers, err := cb.HttpGet(req)
 		resp := &data.GatewayResponse{
 			GatewayBase:    req.GatewayBase,
 			StatusCode:     code,
-			DurationMillis: (time.Now().UnixMilli() - nowMillis),
+			DurationMillis: (time.Now().UTC().UnixMilli() - nowMillis),
 		}
 		resp.Body = &body
 		resp.Headers = headers
-		attenuatedRequestsLatency.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UnixMilli() - nowMillis))
+		attenuatedRequestsLatency.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 		return resp, err
 
 	case "post":
@@ -140,16 +140,16 @@ func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, er
 			break
 		}
 
-		nowMillis := time.Now().UnixMilli()
+		nowMillis := time.Now().UTC().UnixMilli()
 		code, body, headers, err := cb.HttpPost(req)
 		resp := &data.GatewayResponse{
 			GatewayBase:    req.GatewayBase,
 			StatusCode:     code,
-			DurationMillis: (time.Now().UnixMilli() - nowMillis),
+			DurationMillis: (time.Now().UTC().UnixMilli() - nowMillis),
 		}
 		resp.Body = &body
 		resp.Headers = headers
-		attenuatedRequestsLatency.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UnixMilli() - nowMillis))
+		attenuatedRequestsLatency.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 		return resp, err
 
 	default:

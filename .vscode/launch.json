@@ -27,5 +27,13 @@
             "program": "${fileDirname}",
             "args": ["gateway"],
         },
+        {
+            "name": "Run",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "args": ["run"],
+        },
     ]
 }

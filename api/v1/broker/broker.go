@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"http-attenuator/broker"
+	"http-attenuator/data"
 	"io"
 	"log"
 	"net/http"
@@ -29,7 +30,7 @@ var brokerRequestsLatency = promauto.NewCounterVec(
 		Name:      "broker_requests_latency",
 		Help:      "The latency of broker requests, keyed by service",
 	},
-	[]string{"tag", "service", "method"},
+	[]string{"tag", "service", "backend", "method"},
 )
 var brokerResponses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -37,7 +38,7 @@ var brokerResponses = promauto.NewCounterVec(
 		Name:      "broker_responses",
 		Help:      "The number of broker responses, keyed by response code and service",
 	},
-	[]string{"tag", "service", "method", "code"},
+	[]string{"tag", "service", "backend", "method", "code"},
 )
 
 func BrokerHandler(c *gin.Context) {
@@ -45,14 +46,15 @@ func BrokerHandler(c *gin.Context) {
 	serviceAndUri := c.Param("serviceAndUri")
 	if serviceAndUri == "" {
 		brokerRequests.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
 			c.Request.Method,
 		).Inc()
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
 			c.Request.Method,
+			"",
 			fmt.Sprint(http.StatusNotFound),
 		).Inc()
 		c.AbortWithStatus(http.StatusNotFound)
@@ -68,12 +70,13 @@ func BrokerHandler(c *gin.Context) {
 	fields := strings.Split(serviceAndUri, "/")
 	if len(fields) == 0 {
 		brokerRequests.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
 			c.Request.Method,
 		).Inc()
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			"",
 			"",
 			c.Request.Method,
 			fmt.Sprint(http.StatusNotFound),
@@ -83,16 +86,17 @@ func BrokerHandler(c *gin.Context) {
 	}
 
 	// Get the service
+	backend := broker.GetServiceMap().GetBackend(fields[0])
 	brokerRequests.WithLabelValues(
-		c.Request.Header.Get("X-migaloo-tag"),
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 		fields[0],
 		c.Request.Method,
 	).Inc()
-	backend := broker.GetServiceMap().GetBackend(fields[0])
 	if backend == nil {
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
+			backend.Label,
 			c.Request.Method,
 			fmt.Sprint(http.StatusNotFound),
 		).Inc()
@@ -100,13 +104,14 @@ func BrokerHandler(c *gin.Context) {
 		return
 	}
 
-	nowMillis := time.Now().UnixMilli()
+	nowMillis := time.Now().UTC().UnixMilli()
 	defer func() {
 		brokerRequestsLatency.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			fields[0],
+			backend.Label,
 			c.Request.Method,
-		).Add(float64(time.Now().UnixMilli() - nowMillis))
+		).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	}()
 
 	request := *c.Request
@@ -129,10 +134,11 @@ func BrokerHandler(c *gin.Context) {
 	resp, err := client.Do(&request)
 	if err != nil {
 		log.Printf("%s: %s: %s", fields[0], backend, err.Error())
-		c.Writer.Header().Add("X-Attenuator-Error", err.Error())
+		c.Writer.Header().Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get("X-migaloo-tag"),
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
+			backend.Label,
 			c.Request.Method,
 			fmt.Sprint(http.StatusBadGateway),
 		).Inc()
@@ -144,8 +150,9 @@ func BrokerHandler(c *gin.Context) {
 
 	// Send the status
 	brokerResponses.WithLabelValues(
-		c.Request.Header.Get("X-migaloo-tag"),
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 		fields[0],
+		backend.Label,
 		c.Request.Method,
 		fmt.Sprint(resp.StatusCode),
 	).Inc()

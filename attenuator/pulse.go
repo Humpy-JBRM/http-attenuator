@@ -101,7 +101,7 @@ func NewPulse(name string, numWorkers int, maxHertz float64, targetHertz float64
 
 			// If we are to wait until a specified time, then do so
 			if p.waitUntil != nil {
-				sleepDurationNano := p.waitUntil.UnixNano() - time.Now().UnixNano()
+				sleepDurationNano := p.waitUntil.UnixNano() - time.Now().UTC().UnixNano()
 				if sleepDurationNano > 0 {
 					time.Sleep(time.Duration(sleepDurationNano) * time.Nanosecond)
 				}
@@ -126,7 +126,7 @@ func (p *PulseImpl) WaitForNext() {
 }
 
 func (p *PulseImpl) SetPauseForDuration(duration time.Duration) {
-	t := time.Now().Add(duration)
+	t := time.Now().UTC().Add(duration)
 	p.waitUntil = &t
 }
 

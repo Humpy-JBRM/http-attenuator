@@ -20,7 +20,11 @@ func (cm *unknownConfigManager) GetStringArray(name string, defaultValue ...[]st
 	return []string{}, fmt.Errorf("ERROR|facade/config.unknown.GetStringArray()| Unknown config type: %s", cm.typeName)
 }
 
-func (cm *unknownConfigManager) GetInt(name string, defaultValue ...int) (int, error) {
+func (cm *unknownConfigManager) GetInt(name string, defaultValue ...int64) (int64, error) {
+	return 0, fmt.Errorf("ERROR|facade/config.unknown.GetInt()| Unknown config type: %s", cm.typeName)
+}
+
+func (cm *unknownConfigManager) GetFloat(name string, defaultValue ...float64) (float64, error) {
 	return 0, fmt.Errorf("ERROR|facade/config.unknown.GetInt()| Unknown config type: %s", cm.typeName)
 }
 
@@ -40,7 +44,11 @@ func (cm *unknownConfigManager) SetString(name string, value string) error {
 	return fmt.Errorf("ERROR|facade/config.unknown.SetString()| Unknown config type: %s", cm.typeName)
 }
 
-func (cm *unknownConfigManager) SetInt(name string, value int) error {
+func (cm *unknownConfigManager) SetInt(name string, value int64) error {
+	return fmt.Errorf("ERROR|facade/config.unknown.SetInt()| Unknown config type: %s", cm.typeName)
+}
+
+func (cm *unknownConfigManager) SetFloat(name string, value float64) error {
 	return fmt.Errorf("ERROR|facade/config.unknown.SetInt()| Unknown config type: %s", cm.typeName)
 }
 

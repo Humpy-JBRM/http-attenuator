@@ -77,8 +77,8 @@ func (cm *naiiveConfigManagerImpl) GetStringArray(name string, defaultValue ...[
 	return val, nil
 }
 
-func (cm *naiiveConfigManagerImpl) GetInt(name string, defaultValue ...int) (int, error) {
-	defaultVal := 0
+func (cm *naiiveConfigManagerImpl) GetInt(name string, defaultValue ...int64) (int64, error) {
+	defaultVal := int64(0)
 	if len(defaultValue) > 0 {
 		defaultVal = defaultValue[0]
 	}
@@ -87,7 +87,20 @@ func (cm *naiiveConfigManagerImpl) GetInt(name string, defaultValue ...int) (int
 		return defaultVal, nil
 	}
 
-	return val.(int), nil
+	return val.(int64), nil
+}
+
+func (cm *naiiveConfigManagerImpl) GetFloat(name string, defaultValue ...float64) (float64, error) {
+	defaultVal := float64(0)
+	if len(defaultValue) > 0 {
+		defaultVal = defaultValue[0]
+	}
+	val := viper.Get(name)
+	if val == nil {
+		return defaultVal, nil
+	}
+
+	return val.(float64), nil
 }
 
 func (cm *naiiveConfigManagerImpl) GetBool(name string, defaultValue ...bool) (bool, error) {
@@ -112,7 +125,12 @@ func (cm *naiiveConfigManagerImpl) SetString(name string, value string) error {
 	return nil
 }
 
-func (cm *naiiveConfigManagerImpl) SetInt(name string, value int) error {
+func (cm *naiiveConfigManagerImpl) SetInt(name string, value int64) error {
+	viper.Set(name, value)
+	return nil
+}
+
+func (cm *naiiveConfigManagerImpl) SetFloat(name string, value float64) error {
 	viper.Set(name, value)
 	return nil
 }

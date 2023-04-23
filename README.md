@@ -19,13 +19,16 @@ Http-attenuator runs as a API gateway providing:
 ## MVP
     - forward proxy mode [tick]
 
-    - service broker mode (which also gives reverse proxy)
+    - service broker mode (which also gives reverse proxy) [tick]
 
     - promana integration [tick - baked in]
 
-    - circuit-break + attenuation + retry
+    - basic "best" selection (for some definition of "best") by the service broker [tick]
+      Currently supports `random` but you can pass it a `preferred` backend
 
-    - basic "best" selection (for some definition of "best")
+    - recording / saving requests and responses [tick]
+
+    - circuit-break + attenuation + retry
 
 ## Why You Would Use This
 

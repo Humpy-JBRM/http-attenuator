@@ -25,7 +25,7 @@ func TestGetStringDefaultValue(t *testing.T) {
 
 func TestSetGetInt(t *testing.T) {
 	name := "int.variable"
-	value := 12345
+	value := int64(12345)
 	configManager = nil
 	Config().Reset()
 
@@ -34,7 +34,7 @@ func TestSetGetInt(t *testing.T) {
 
 func TestGetIntDefaultValue(t *testing.T) {
 	name := "int.variable"
-	defaultValue := 12345
+	defaultValue := int64(12345)
 	configManager = nil
 	Config().Reset()
 

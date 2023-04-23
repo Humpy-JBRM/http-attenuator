@@ -6,6 +6,7 @@ import (
 	"http-attenuator/data"
 	"log"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -33,14 +34,18 @@ func RunGateway(cmd *cobra.Command, args []string) {
 	}
 
 	// Add the gateway endpoint
-	ginRouter.GET("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
-	ginRouter.DELETE("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
-	ginRouter.OPTIONS("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
-	ginRouter.POST("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
-	ginRouter.PUT("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
+	gatewayEndpoints(ginRouter)
 
 	err = ginRouter.Run(gatewayAddress)
 	if err != nil {
 		log.Printf("FATAL|cmd.runServer()|Could not start server|%s", err.Error())
 	}
+}
+
+func gatewayEndpoints(ginRouter *gin.Engine) {
+	ginRouter.GET("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
+	ginRouter.DELETE("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
+	ginRouter.OPTIONS("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
+	ginRouter.POST("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
+	ginRouter.PUT("/api/v1/gateway/*hostAndQuery", gateway.GatewayHandler)
 }

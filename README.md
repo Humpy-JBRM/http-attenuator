@@ -10,25 +10,37 @@ Http-attenuator runs as a API gateway providing:
 
     - request / response rewriting
 
-    - billing
+    - consumption-based billing
+
+    - RBAC and PBAC
 
     - metrics and monitoring
 
     - recording / saving requests and responses
 
+(@JamesThatcher: some of this might remind you of 'parrot')
+
 ## MVP
-    - forward proxy mode [tick]
+    - [tick] forward proxy mode
+      Needs integration with saving req/resp (a la BURP)
 
-    - service broker mode (which also gives reverse proxy) [tick]
+    - [tick] service broker mode (which also gives reverse proxy)
 
-    - promana integration [tick - baked in]
+    - [tick] promana integration
 
-    - basic "best" selection (for some definition of "best") by the service broker [tick]
+    - [tick] basic "best" selection (for some definition of "best") by the service broker
       Currently supports `random` but you can pass it a `preferred` backend
 
-    - recording / saving requests and responses [tick]
+    - [tick] recording / saving requests and responses
+      Forward proxy needs this behaviour integrated
 
     - circuit-break + attenuation + retry
+      This is a solved problem, which I will integrate later (possibly wait until I've got
+      the redis implementation of the clock)
+
+    - grafana eye candy
+
+    - kubernetes + HELM
 
 ## Why You Would Use This
 

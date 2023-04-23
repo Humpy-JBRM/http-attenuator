@@ -20,7 +20,7 @@ var gatewayCmd = &cobra.Command{
 var gatewayAddress string
 
 func init() {
-	gatewayCmd.PersistentFlags().StringVarP(&gatewayAddress, "listen", "l", "0.0.0.0:8888", "API listen address (default is 0.0.0.0:8002)")
+	gatewayCmd.PersistentFlags().StringVarP(&gatewayAddress, "listen", "l", "0.0.0.0:8888", "API listen address (default is 0.0.0.0:8888)")
 }
 
 func RunGateway(cmd *cobra.Command, args []string) {
@@ -35,6 +35,10 @@ func RunGateway(cmd *cobra.Command, args []string) {
 
 	// Add the gateway endpoint
 	gatewayEndpoints(ginRouter)
+
+	if viper.GetBool(data.CONF_PROXY_ENABLE) {
+		go runProxy()
+	}
 
 	err = ginRouter.Run(gatewayAddress)
 	if err != nil {

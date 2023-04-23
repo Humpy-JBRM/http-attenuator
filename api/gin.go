@@ -20,7 +20,7 @@ func NewRouter() (*gin.Engine, error) {
 	router.Use(
 		func(ctx *gin.Context) {
 			ctx.Set("X-Real-Ip", ctx.Request.Header.Get("X-Real-Ip"))
-			ctx.Set("X-Humpy-Api-Key", ctx.Request.Header.Get("X-Humpy-Api-Key"))
+			ctx.Set("X-Migaloo-Api-Key", ctx.Request.Header.Get("X-Migaloo-Api-Key"))
 		},
 	)
 
@@ -29,6 +29,8 @@ func NewRouter() (*gin.Engine, error) {
 		"127.0.0.1",
 	})
 	router.Use(middleware.CorsMiddleware())
+	router.Use(middleware.TraceMiddleware())
+	router.Use(middleware.BillingMiddleware())
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		// your custom format
 		return fmt.Sprintf("%s | %s | %s:%s | %s %s | %d | %d | %s\n",
@@ -46,7 +48,7 @@ func NewRouter() (*gin.Engine, error) {
 
 	// Add routes / endpoints here
 	// router.NoRoute(ServeCachedFile)
-	router.GET("/metrics", prometheusHandler())
+	router.GET("/api/v1/metrics", prometheusHandler())
 	return router, nil
 }
 

@@ -42,20 +42,16 @@ var gatewayResponses = promauto.NewCounterVec(
 
 func GatewayHandler(c *gin.Context) {
 	nowMillis := time.Now().UTC().UnixMilli()
+	host := ""
 	defer func() {
 		gatewayRequestsLatency.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
-			"",
+			host,
 			c.Request.Method,
 		).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	}()
 
 	// Extract the host from the URL
-	gatewayRequests.WithLabelValues(
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
-		"",
-		c.Request.Method,
-	).Inc()
 	hostAndQuery := c.Param("hostAndQuery")
 	if hostAndQuery == "" {
 		gatewayResponses.WithLabelValues(
@@ -74,15 +70,26 @@ func GatewayHandler(c *gin.Context) {
 
 	hostAndQueryUrl, err := url.Parse(hostAndQuery)
 	if err != nil {
+		gatewayRequests.WithLabelValues(
+			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			"",
+			c.Request.Method,
+		).Inc()
 		gatewayResponses.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
-			hostAndQueryUrl.Host,
+			"",
 			c.Request.Method,
 			fmt.Sprint(http.StatusBadRequest),
 		).Inc()
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
+	host = hostAndQueryUrl.Host
+	gatewayRequests.WithLabelValues(
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		host,
+		c.Request.Method,
+	).Inc()
 	request := *c.Request
 	request.URL = hostAndQueryUrl
 	request.Host = hostAndQueryUrl.Host

@@ -49,7 +49,7 @@ func (c *CircuitBreakerImpl) HttpGet(req *data.GatewayRequest) (int, []byte, htt
 			headers = append(headers, fmt.Sprintf("%s: %s", k, v))
 		}
 	}
-	return util.HttpGet(req.Url.String(), req.Headers)
+	return util.HttpGet(req.GetUrl().String(), req.Headers)
 }
 
 func (c *CircuitBreakerImpl) HttpPost(req *data.GatewayRequest) (int, []byte, http.Header, error) {
@@ -63,5 +63,5 @@ func (c *CircuitBreakerImpl) HttpPost(req *data.GatewayRequest) (int, []byte, ht
 			headers = append(headers, fmt.Sprintf("%s: %s", k, v))
 		}
 	}
-	return util.HttpPost(req.Url.String(), body, req.Headers)
+	return util.HttpPost(req.GetUrl().String(), body, req.Headers)
 }

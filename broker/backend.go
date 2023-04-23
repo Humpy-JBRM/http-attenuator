@@ -2,9 +2,12 @@ package broker
 
 import (
 	"fmt"
+	"http-attenuator/data"
+	config "http-attenuator/facade/config"
 	"log"
 	"math"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -36,6 +39,17 @@ type Backend struct {
 	RecordRequestRoot  string `json:"record_request_root"`
 	RecordResponseRoot string `json:"record_response_root"`
 
+	// The weight as set in the config file.
+	// If no weight is specified, then it defaults to 1
+	Weight float64 `json:"weight"`
+	// ProbabilityCDF is 0 <= weight <= 1.0
+	// I.e. where this sits on the CDF of all backends for this service
+	ProbabilityCDF float64 `json:"probability"`
+
+	// TODO(john): proper TRIBE costs.
+	// For now, this is just 'cost in cents of this backend'
+	Cost float64 `json:"cost"`
+
 	windowSizeMillis int64
 	stats            chan (*statistic)
 }
@@ -56,6 +70,26 @@ var backendStats = promauto.NewGaugeVec(
 	},
 	[]string{"service", "label", "stat"},
 )
+
+// NewDefaultGateway returns a simple forward proxy
+//
+// This is then mapped in the serviceMap as 'gateway'
+func NewDefaultGateway() *Backend {
+	// Are we recording?
+	recordRequestsRoot, _ := config.Config().GetString(data.CONF_GATEWAY_RECORD_REQUESTS)
+	recordResponsesRoot, _ := config.Config().GetString(data.CONF_GATEWAY_RECORD_REQUESTS)
+
+	backend := &Backend{
+		Service:            "gateway",
+		Label:              "default",
+		Params:             make(map[string]string),
+		Headers:            make(map[string]string),
+		RecordRequestRoot:  recordRequestsRoot,
+		RecordResponseRoot: recordResponsesRoot,
+	}
+
+	return backend
+}
 
 // NewBackendFromConfig parses a backend from the config.yml
 //
@@ -97,6 +131,10 @@ func NewBackendFromConfig(service string, label string, configMap map[string]int
 			err = fmt.Errorf("%s: %s: %s: %s", service, label, fmt.Sprint(configMap["url"]), err.Error())
 			return backend, err
 		}
+		weight, _ := strconv.ParseFloat(fmt.Sprint(configMap["weight"]), 64)
+
+		// TODO(john): actual TRIBE cost
+		cost, _ := strconv.ParseFloat(fmt.Sprint(configMap["cost"]), 64)
 		backend = &Backend{
 			Service: service,
 			Label:   label,
@@ -104,6 +142,8 @@ func NewBackendFromConfig(service string, label string, configMap map[string]int
 			Url:     url,
 			Params:  make(map[string]string),
 			Headers: make(map[string]string),
+			Weight:  weight,
+			Cost:    cost,
 		}
 
 	default:

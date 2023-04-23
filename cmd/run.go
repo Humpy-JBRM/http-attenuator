@@ -18,7 +18,7 @@ var runCmd = &cobra.Command{
 var runAddress string
 
 func init() {
-	runCmd.PersistentFlags().StringVarP(&runAddress, "listen", "l", "0.0.0.0:8888", "API listen address (default is 0.0.0.0:8002)")
+	runCmd.PersistentFlags().StringVarP(&runAddress, "listen", "l", "0.0.0.0:8888", "API listen address (default is 0.0.0.0:8888)")
 }
 
 func RunRun(cmd *cobra.Command, args []string) {
@@ -35,6 +35,10 @@ func RunRun(cmd *cobra.Command, args []string) {
 	configEndpoints(ginRouter)
 	brokerEndpoints(ginRouter)
 	gatewayEndpoints(ginRouter)
+
+	if viper.GetBool(data.CONF_PROXY_ENABLE) {
+		go runProxy()
+	}
 
 	err = ginRouter.Run(runAddress)
 	if err != nil {

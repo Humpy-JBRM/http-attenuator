@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"http-attenuator/broker"
 	"http-attenuator/data"
@@ -22,7 +21,7 @@ var brokerRequests = promauto.NewCounterVec(
 		Name:      "broker_requests",
 		Help:      "The number of broker requests, keyed by service",
 	},
-	[]string{"tag", "service", "method"},
+	[]string{"tag", "service", "backend", "method"},
 )
 var brokerRequestsLatency = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -40,6 +39,14 @@ var brokerResponses = promauto.NewCounterVec(
 	},
 	[]string{"tag", "service", "backend", "method", "code"},
 )
+var brokerCost = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "broker_cost",
+		Help:      "The cost of broker responses, keyed by service, backend and customer",
+	},
+	[]string{"tag", "service", "backend", "customer"},
+)
 
 func BrokerHandler(c *gin.Context) {
 	// Extract the service from the URL
@@ -48,13 +55,14 @@ func BrokerHandler(c *gin.Context) {
 		brokerRequests.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
+			"",
 			c.Request.Method,
 		).Inc()
 		brokerResponses.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
-			c.Request.Method,
 			"",
+			c.Request.Method,
 			fmt.Sprint(http.StatusNotFound),
 		).Inc()
 		c.AbortWithStatus(http.StatusNotFound)
@@ -72,6 +80,7 @@ func BrokerHandler(c *gin.Context) {
 		brokerRequests.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
 			"",
+			"",
 			c.Request.Method,
 		).Inc()
 		brokerResponses.WithLabelValues(
@@ -87,11 +96,6 @@ func BrokerHandler(c *gin.Context) {
 
 	// Get the service
 	backend := broker.GetServiceMap().GetBackend(fields[0])
-	brokerRequests.WithLabelValues(
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
-		fields[0],
-		c.Request.Method,
-	).Inc()
 	if backend == nil {
 		brokerResponses.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
@@ -103,6 +107,20 @@ func BrokerHandler(c *gin.Context) {
 		c.AbortWithError(http.StatusNotFound, fmt.Errorf("%s: unknown service", c.Request.URL.String()))
 		return
 	}
+
+	// Update stats
+	brokerRequests.WithLabelValues(
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		fields[0],
+		backend.Label,
+		c.Request.Method,
+	).Inc()
+	brokerCost.WithLabelValues(
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		fields[0],
+		backend.Label,
+		c.Request.Header.Get(data.HEADER_X_MIGALOO_API_CUSTOMER),
+	).Add(backend.Cost)
 
 	nowMillis := time.Now().UTC().UnixMilli()
 	defer func() {
@@ -126,11 +144,6 @@ func BrokerHandler(c *gin.Context) {
 	//
 	// TODO(john): put it through the attenuator / circuit breaker etc
 	client := http.Client{}
-	rb, err := json.MarshalIndent(request, "", "  ")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	log.Println(string(rb))
 	resp, err := client.Do(&request)
 	if err != nil {
 		log.Printf("%s: %s: %s", fields[0], backend, err.Error())

@@ -7,9 +7,79 @@ config:
     queue_size: 100
   broker:
     upstream:
+      # alex1m service
+      # This is a contrived service broker which simply spreads requests
+      # across the top 10 sites from the Alexa Top Million list
+      #
+      # This is mainly to give us nice eye-candy in grafana and verify
+      # that all of the metrics are doing what we expect them to do
+      "alexa1m":
+        # TODO(john): hook up the TRIBE billing engine
+        cost:
+          alexa1m: 1
+        amazon.com:
+          impl: proxy
+          url: https://amazon.com
+          # 'weight' is used to calculate a CDF so we spread load in
+          # a weighted manner
+          #
+          # See: service_map.go
+          weight: 1
+          # 'cost' is a placeholder, and a TODO(john) when hooked up to TRIBE.
+          # For now, it's 'how many cents did we charge you for this'
+          cost: 0.1
+        baidu.com:
+          impl: proxy
+          url: https://baidu.com
+          weight: 8
+          cost: 1
+        bilibili.com:
+          impl: proxy
+          url: https://bilibili.com
+          weight: 7
+          cost: 0.8
+        facebook.com:
+          impl: proxy
+          url: https://facebook.com
+          weight: 6
+          cost: 0.09
+        google.com:
+          impl: proxy
+          url: https://google.com
+          weight: 10
+          cost: 0.4
+        qq.com:
+          impl: proxy
+          url: https://qq.com
+          weight: 5
+          cost: 1.1
+        twitter.com:
+          impl: proxy
+          url: https://twitter.com
+          weight: 4
+          cost: 2.0
+        wikipedia.org:
+          impl: proxy
+          url: https://wikipedia.com
+          weight: 2
+          cost: 0.6
+        youtube.com:
+          impl: proxy
+          url: https://youtube.com
+          weight: 9
+          cost: 0.2
+        zhihu.com:
+          impl: proxy
+          url: https://zhihu.com
+          weight: 3
+          cost: 1.1
+        rule: weighted
       # Name of this service.
       # We use this to map /api/v1/broker/{SERVICE} to the service map
       "search":
+        # The cost of this service, as per TRIBE
+        cost:
+          search: 1
         # /api/v1/broker/search will randomly choose between bing and google
         # backends
         bing:
@@ -25,11 +95,19 @@ config:
           headers:
             X-Alizee: wiggle
           record:
+            # directory where to store requests and responses.
+            # A blank value means we are not recording this thing - so
+            # you could (if you wanted) only record requests or only
+            # record responses.
             requests: search
             responses: search
         google:
           impl: proxy
-          url: https://www.google.com?q=${q}
+          url: https://www.google.com
+          params:
+            # Keep the 'q=' parameter exactly as it is, i.e.
+            # we don't need to rename it or map it in any way
+            q: q
         rule: random
   gateway:
     # The gateway is just an ordinary forward proxy:
@@ -38,3 +116,13 @@ config:
     #
     # will just be proxied to https://foo.com?param1=value
     listen: 0.0.0.0:8888
+    record:
+      # directory where to store requests and responses.
+      # A blank value means we are not recording this thing - so
+      # you could (if you wanted) only record requests or only
+      # record responses.
+      requests: saved-requests-and-responses
+      responses: saved-requests-and-responses
+  proxy:
+    enable: true
+    listen: 0.0.0.0:8080

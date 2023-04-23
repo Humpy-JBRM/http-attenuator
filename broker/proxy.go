@@ -28,11 +28,11 @@ func NewForwardProxy(backend *Backend) *ForwardProxy {
 func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayResponse, err error) {
 	var recordRequestFile *os.File
 	if p.backend.RecordRequestRoot != "" {
-		recordPath := filepath.Join(p.backend.RecordRequestRoot, req.Url.Host, req.Id+"-request.json")
+		recordPath := filepath.Join(p.backend.RecordRequestRoot, req.GetUrl().Host, req.Id+"-request.json")
 		os.MkdirAll(filepath.Dir(recordPath), 0755)
 		recordRequestFile, err = os.OpenFile(recordPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
-			err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.Url.String(), err.Error())
+			err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.GetUrl().String(), err.Error())
 			log.Println(err)
 			response.Headers.Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 			return response, err
@@ -41,11 +41,11 @@ func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayR
 	}
 	var recordResponseFile *os.File
 	if p.backend.RecordResponseRoot != "" {
-		recordPath := filepath.Join(p.backend.RecordResponseRoot, req.Url.Host, req.Id+"-response.json")
+		recordPath := filepath.Join(p.backend.RecordResponseRoot, req.GetUrl().Host, req.Id+"-response.json")
 		os.MkdirAll(filepath.Dir(recordPath), 0755)
 		recordResponseFile, err = os.OpenFile(recordPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
-			err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.Url.String(), err.Error())
+			err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.GetUrl().String(), err.Error())
 			log.Println(err)
 			response.Headers.Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 			return response, err
@@ -72,8 +72,8 @@ func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayR
 
 	httpRequest := &http.Request{
 		Method: req.Method,
-		URL:    &req.Url,
-		Host:   req.Url.Host,
+		URL:    req.GetUrl(),
+		Host:   req.GetUrl().Host,
 		Header: req.Headers,
 	}
 
@@ -91,7 +91,7 @@ func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayR
 	log.Printf("ForwardProxy(): %s", httpRequest.URL.String())
 	resp, e := client.Do(httpRequest)
 	if err != nil {
-		err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.Url.String(), e.Error())
+		err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.GetUrl().String(), e.Error())
 		log.Println(err)
 		response.Headers.Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 		return response, err
@@ -105,7 +105,7 @@ func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayR
 	response.Body = &[]byte{}
 	*response.Body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.Url.String(), err.Error())
+		err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.GetUrl().String(), err.Error())
 		log.Println(err)
 		response.Headers.Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 	}

@@ -100,8 +100,8 @@ func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, er
 	// wait for green light
 	nowMillis := time.Now().UTC().UnixMilli()
 	WaitForGreen(a.name, 1)
-	attenuatedRequestsWaiting.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
-	attenuatedRequests.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Inc()
+	attenuatedRequestsWaiting.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
+	attenuatedRequests.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
 
 	// Do the request
 	var err error
@@ -126,7 +126,7 @@ func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, er
 		}
 		resp.Body = &body
 		resp.Headers = headers
-		attenuatedRequestsLatency.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
+		attenuatedRequestsLatency.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 		return resp, err
 
 	case "post":
@@ -149,15 +149,15 @@ func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, er
 		}
 		resp.Body = &body
 		resp.Headers = headers
-		attenuatedRequestsLatency.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
+		attenuatedRequestsLatency.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 		return resp, err
 
 	default:
-		panic(fmt.Sprintf("Implement %s %s", strings.ToUpper(req.Method), req.Url.String()))
+		panic(fmt.Sprintf("Implement %s %s", strings.ToUpper(req.Method), req.GetUrl().String()))
 
 	}
 	if err != nil {
-		attenuatedRequestsFailures.WithLabelValues(req.Url.Host, req.Method, req.Url.Path).Inc()
+		attenuatedRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
 	}
 	return nil, err
 }

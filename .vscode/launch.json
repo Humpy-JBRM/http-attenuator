@@ -12,6 +12,14 @@
             "program": "${fileDirname}"
         },
         {
+            "name": "Alexa1m",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "args": ["alexa1m"],
+        },
+        {
             "name": "Broker",
             "type": "go",
             "request": "launch",
@@ -26,6 +34,14 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "args": ["gateway"],
+        },
+        {
+            "name": "Proxy",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "args": ["proxy"],
         },
         {
             "name": "Run",

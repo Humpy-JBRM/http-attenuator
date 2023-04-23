@@ -11,8 +11,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "humpy",
-	Short: "Humpy is a way to mirror and declutter all your digital stuff",
+	Use:   "hsak",
+	Short: "HSAK (HTTP Swiss Army Knife) is a smart API gateway and proxy",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Do Stuff Here
 	},
@@ -30,9 +30,11 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "f", "config.yml", "config file (default is config.yml)")
 
+	rootCmd.AddCommand(alexa1mCmd)
 	rootCmd.AddCommand(brokerCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(gatewayCmd)
+	rootCmd.AddCommand(proxyCmd)
 	rootCmd.AddCommand(runCmd)
 
 	// Microservices

@@ -20,7 +20,7 @@ var configCmd = &cobra.Command{
 var configAddress string
 
 func init() {
-	configCmd.PersistentFlags().StringVarP(&configAddress, "listen", "l", "0.0.0.0:8888", "API listen address (default is 0.0.0.0:8002)")
+	configCmd.PersistentFlags().StringVarP(&configAddress, "listen", "l", "0.0.0.0:8888", "API listen address (default is 0.0.0.0:8888)")
 }
 
 func RunConfig(cmd *cobra.Command, args []string) {
@@ -35,6 +35,10 @@ func RunConfig(cmd *cobra.Command, args []string) {
 
 	// Add the config endpoint
 	configEndpoints(ginRouter)
+
+	if viper.GetBool(data.CONF_PROXY_ENABLE) {
+		go runProxy()
+	}
 
 	err = ginRouter.Run(configAddress)
 	if err != nil {

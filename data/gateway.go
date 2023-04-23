@@ -21,13 +21,21 @@ type GatewayBase struct {
 	WhenMillis int64 `json:"timestamp"`
 
 	// The URL
-	Url url.URL `json:"url"`
+	// Make this private so that json (un)marshall works correctly and
+	// does not complain about trying to marshal / unmarshall a function
+	url *url.URL `json:"-"`
+
+	DisplayUrl string `json:"url"`
 
 	// Headers
 	Headers http.Header `json:"headers"`
 
 	// Request body (if any)
 	Body *[]byte `json:"body,omitempty"`
+}
+
+func (g *GatewayBase) GetUrl() *url.URL {
+	return g.url
 }
 
 type GatewayRequest struct {
@@ -44,10 +52,11 @@ func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers ht
 
 	gwr := &GatewayRequest{
 		GatewayBase: GatewayBase{
-			Id:      idToUse,
-			Url:     *requestUrl,
-			Headers: headers,
-			Body:    body,
+			Id:         idToUse,
+			url:        requestUrl,
+			DisplayUrl: requestUrl.String(),
+			Headers:    headers,
+			Body:       body,
 		},
 		Method: method,
 	}

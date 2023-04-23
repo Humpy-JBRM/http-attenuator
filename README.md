@@ -29,16 +29,23 @@ Http-attenuator runs as a API gateway providing:
     - [tick] promana integration
 
     - [tick] basic "best" selection (for some definition of "best") by the service broker
-      Currently supports `random` but you can pass it a `preferred` backend
+      Currently supports `random` but you can pass it a `preferred` backend.
+      Added `weighted`, which is good enough for a MVP.  But the whole backend selection
+      could be a PhD project all by itself
 
     - [tick] recording / saving requests and responses
-      Forward proxy needs this behaviour integrated
+      TODO(john): Forward proxy needs this behaviour integrated
+      TODO(john): drop gin, use net/http so we don't need different ports
 
     - circuit-break + attenuation + retry
       This is a solved problem, which I will integrate later (possibly wait until I've got
       the redis implementation of the clock)
 
-    - grafana eye candy
+    - [tick] grafana eye candy
+
+    - [tick] demonstrate service broker
+
+    - useful service broker (storage: OneDrive, Drive, S3 - CRUD of same)
 
     - kubernetes + HELM
 
@@ -54,6 +61,12 @@ Simply, it means that there is a whole bunch of stuff that you now do not have t
     - you don't need to build any rate-limiting plumbing - the attenuator gives you all the rate limiting for free
 
 ### Service Broker Mode
+All of your requests - regardless of provider - return exactly the same JSON.
+
+Your client code is much much easier, because it's all consistent.
+
+Inb4 "lock in".  The very point of this is "lock in", with a FOSS solution.
+
 Sometimes you might not know (or care) exactly which endpoint is the one you want to use,
 or you want the _best_ endpoint (for some definition of _best_) to be chosen.
 

@@ -26,7 +26,7 @@ var hertz int
 
 func init() {
 	brokerCmd.PersistentFlags().StringVarP(&hsakAddress, "hsak", "h", "localhost:8888", "Address of HSAK gateway (default is localhost:8888)")
-	brokerCmd.PersistentFlags().IntVarP(&hertz, "hz", "z", 2, "Site request frequency (default is 2Hz)")
+	brokerCmd.PersistentFlags().IntVarP(&hertz, "hz", "z", 1, "Site request frequency (default is 2Hz)")
 }
 
 func RunAlexa1m(cmd *cobra.Command, args []string) {
@@ -113,7 +113,7 @@ func worker(requestChan <-chan string, wg *sync.WaitGroup) {
 		log.Println(targetUrl)
 		_, err := client.Do(&req)
 		if err != nil {
-			log.Printf("%s: %s", targetUrl, err.Error())
+			log.Fatalf("%s: %s", targetUrl, err.Error())
 		}
 	}
 }

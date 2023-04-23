@@ -109,6 +109,17 @@ config:
             # we don't need to rename it or map it in any way
             q: q
         rule: random
+      "storage":
+        # TODO(john): be able to integrate with lots of storage providers
+        drive:
+          # Google drive
+          impl: internal
+        onedrive:
+          # MS Onedrive
+          impl: internal
+        s3:
+          # Amazon S3
+          impl: internal
   gateway:
     # The gateway is just an ordinary forward proxy:
     #

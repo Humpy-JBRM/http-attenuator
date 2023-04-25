@@ -6,6 +6,8 @@ import (
 
 // AttenuatorCallback is invoked by DoAsync() when the
 // request is actually made
+//
+// TODO(john): async invocation
 type AttenuatorCallback func(result AttenuatorResult) error
 
 type Attenuator interface {

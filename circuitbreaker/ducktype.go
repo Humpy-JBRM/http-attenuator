@@ -12,9 +12,6 @@ type CircuitBreaker interface {
 }
 
 type CircuitBreakerImpl struct {
-	// The name of the traffic light we use to attenuate this
-	TrafficLight string `json:"traffic_light"`
-
 	// The maximum number of retries
 	Retries int `json:"retries"`
 
@@ -27,7 +24,6 @@ type CircuitBreakerImpl struct {
 }
 
 type CircuitBreakerBuilder interface {
-	TrafficLight(trafficLight string) CircuitBreakerBuilder
 	Retries(retries int) CircuitBreakerBuilder
 	TimeoutMillis(timeoutMillis int64) CircuitBreakerBuilder
 	Success(fSuccess ...data.SuccessFunc) CircuitBreakerBuilder

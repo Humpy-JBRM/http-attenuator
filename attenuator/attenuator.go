@@ -108,7 +108,6 @@ func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, er
 	switch strings.ToLower(req.Method) {
 	case "get":
 		cb, err := circuitbreaker.NewCircuitBreakerBuilder().
-			TrafficLight("").
 			Retries(0).
 			TimeoutMillis(10000).
 			Build()
@@ -131,7 +130,6 @@ func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, er
 
 	case "post":
 		cb, err := circuitbreaker.NewCircuitBreakerBuilder().
-			TrafficLight("").
 			Retries(0).
 			TimeoutMillis(10000).
 			Build()

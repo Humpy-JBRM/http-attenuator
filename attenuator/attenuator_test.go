@@ -11,7 +11,7 @@ import (
 )
 
 func TestSimpleGetSync(t *testing.T) {
-	os.Setenv("CONFIG_FILE", "../config.yml")
+	os.Setenv("CONFIG_FILE", "../../config.yml")
 	hertz := 1.0
 	iterations := 10
 	at, err := NewAttenuator(

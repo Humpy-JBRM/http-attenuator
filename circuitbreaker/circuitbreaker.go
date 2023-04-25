@@ -17,11 +17,6 @@ func NewCircuitBreakerBuilder() CircuitBreakerBuilder {
 	}
 }
 
-func (cb *circuitBreakerBuilder) TrafficLight(trafficLight string) CircuitBreakerBuilder {
-	cb.impl.TrafficLight = trafficLight
-	return cb
-}
-
 func (cb *circuitBreakerBuilder) Retries(retries int) CircuitBreakerBuilder {
 	cb.impl.Retries = retries
 	return cb

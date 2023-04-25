@@ -1,4 +1,4 @@
-package attenuator
+package facade
 
 import (
 	"fmt"
@@ -9,24 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
-
-// A Pulse emits a heartbeat every N milliseconds.
-//
-// How this value is obtained from config is an exercise for
-// the interested reader.
-//
-// For this exerecise, our rate limit is a maximum of 2 per second,
-// so the light goes green every 500 ms.
-type Pulse interface {
-	// wait for the next heartbeat
-	WaitForNext()
-
-	// pause heartbeats for a specified amount of time
-	SetPauseForDuration(duration time.Duration)
-
-	// pause hartbeats until a particular wallclock time is reached
-	SetPauseUntil(wallclock time.Time)
-}
 
 type PulseImpl struct {
 	name       string
@@ -48,9 +30,33 @@ var pulses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
 		Namespace: "migaloo",
 		Name:      "pulse",
-		Help:      "The pulse heartbeats, keyed by pulse name",
+		Help:      "The pulse heartbeats, keyed by pulse name and type",
 	},
-	[]string{"name", "hertz"},
+	[]string{"name", "type", "hertz"},
+)
+var pulseWaitTime = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pulse_wait_time",
+		Help:      "Time spent waiting for pulses",
+	},
+	[]string{"name", "type"},
+)
+var pulseSink = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pulse_sink",
+		Help:      "Number of pulses added",
+	},
+	[]string{"name", "type"},
+)
+var pulseDrain = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pulse_drain",
+		Help:      "Pulses fetched",
+	},
+	[]string{"name", "type"},
 )
 
 var pulseRegistry map[string]Pulse = map[string]Pulse{}
@@ -94,7 +100,7 @@ func NewPulse(name string, numWorkers int, maxHertz float64, targetHertz float64
 		for {
 			if sleepTimeMillis <= 0 {
 				// always a green light
-				pulses.WithLabelValues(p.name, fmt.Sprintf("%.2f", p.maxHertz)).Inc()
+				pulses.WithLabelValues(p.name, "naive", fmt.Sprintf("%.2f", p.maxHertz)).Inc()
 				p.pulseChan <- true
 				continue
 			}
@@ -105,7 +111,7 @@ func NewPulse(name string, numWorkers int, maxHertz float64, targetHertz float64
 				if sleepDurationNano > 0 {
 					time.Sleep(time.Duration(sleepDurationNano) * time.Nanosecond)
 				}
-				pulses.WithLabelValues(p.name, fmt.Sprintf("%.2f", p.maxHertz)).Inc()
+				pulses.WithLabelValues(p.name, "naive", fmt.Sprintf("%.2f", p.maxHertz)).Inc()
 				p.pulseChan <- true
 				p.waitUntil = nil
 				continue
@@ -119,10 +125,11 @@ func NewPulse(name string, numWorkers int, maxHertz float64, targetHertz float64
 	return pulse, nil
 }
 
-func (p *PulseImpl) WaitForNext() {
+func (p *PulseImpl) WaitForNext() error {
 	// log.Println("Waiting for traffic light")
 	<-p.pulseChan
 	// log.Println("Got traffic light")
+	return nil
 }
 
 func (p *PulseImpl) SetPauseForDuration(duration time.Duration) {

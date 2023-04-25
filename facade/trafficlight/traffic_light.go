@@ -1,13 +1,9 @@
-package attenuator
+package facade
 
 import (
 	"log"
 	"strings"
 )
-
-type TrafficLight interface {
-	WaitForGreen(attemptNumber int)
-}
 
 type TrafficLightImpl struct {
 	Name  string
@@ -15,7 +11,7 @@ type TrafficLightImpl struct {
 }
 
 func (t *TrafficLightImpl) WaitForGreen(attemptNumber int) {
-	// return straigh away of no pulse has been configured
+	// return straight away if no pulse has been configured
 	if t.pulse == nil {
 		return
 	}

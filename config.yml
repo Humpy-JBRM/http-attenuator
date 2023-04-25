@@ -101,6 +101,10 @@ config:
             # record responses.
             requests: search
             responses: search
+          circuitbreaker:
+            max_hertz: 2
+            retries: 3
+            timeout_millis: 10000
         google:
           impl: proxy
           url: https://www.google.com
@@ -108,6 +112,10 @@ config:
             # Keep the 'q=' parameter exactly as it is, i.e.
             # we don't need to rename it or map it in any way
             q: q
+          circuitbreaker:
+            max_hertz: 2
+            retries: 3
+            timeout_millis: 10000
         rule: random
       "storage":
         # TODO(john): be able to integrate with lots of storage providers

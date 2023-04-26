@@ -44,28 +44,37 @@ func (g *GatewayBase) GetUrl() *url.URL {
 type GatewayRequest struct {
 	GatewayBase
 
-	Method string `json:"method"`
+	req *http.Request
+}
+
+func (r *GatewayRequest) GetRequest() *http.Request {
+	return r.req
 }
 
 func NewGatewayRequestFromHttp(id string, req *http.Request) (*GatewayRequest, error) {
 	var bodyBytes []byte
 	var err error
 	if req.Body != nil {
-		bodyBytes, err = io.ReadAll(req.Body)
-		req.Body.Close()
+		// Clone the body so we don't mess up the io.Reader
+		cloned := req.Clone(req.Context())
+		bodyBytes, err = io.ReadAll(cloned.Body)
+		cloned.Body.Close()
 		if err != nil {
 			e := fmt.Errorf("NewGatewayRequestFromHttp(%s): %s", req.URL.String(), err.Error())
 			log.Println(e)
 			return nil, e
 		}
 	}
-	return NewGatewayRequest(
-		id,
-		req.Method,
-		req.URL,
-		req.Header,
-		bodyBytes,
-	), nil
+	gwr := &GatewayRequest{
+		GatewayBase: GatewayBase{
+			Id:         id,
+			url:        req.URL,
+			DisplayUrl: req.URL.String(),
+			Headers:    req.Header,
+			Body:       bodyBytes,
+		},
+	}
+	return gwr, nil
 }
 
 func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers http.Header, body []byte) *GatewayRequest {
@@ -82,27 +91,31 @@ func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers ht
 			Headers:    headers,
 			Body:       body,
 		},
-		Method: method,
 	}
 
 	return gwr
 }
 
 type GatewayResponse struct {
-	Id             string      `json:"id"`
-	Headers        http.Header `json:"headers"`
-	Body           []byte      `json:"body,omitempty"`
-	StatusCode     int         `json:"status_code"`
-	WhenMillis     int64       `json:"duration_millis"`
-	DurationMillis int64       `json:"timestamp"`
-	Error          error       `json:"error,omitempty"`
+	GatewayBase
+	StatusCode     int   `json:"status_code"`
+	WhenMillis     int64 `json:"duration_millis"`
+	DurationMillis int64 `json:"timestamp"`
+	Error          error `json:"error,omitempty"`
+	resp           *http.Response
+}
+
+func (r *GatewayResponse) GetResponse() *http.Response {
+	return r.resp
 }
 
 func NewGatewayResponse(id string, statusCode int, body []byte, headers http.Header, err error) *GatewayResponse {
 	return &GatewayResponse{
-		Id:         id,
-		Headers:    headers,
-		Body:       body,
+		GatewayBase: GatewayBase{
+			Id:      id,
+			Headers: headers,
+			Body:    body,
+		},
 		StatusCode: statusCode,
 		Error:      err,
 	}
@@ -120,11 +133,16 @@ func NewGatewayResponseFromHttp(id string, url *url.URL, resp *http.Response) (*
 			return nil, e
 		}
 	}
-	return NewGatewayResponse(
-		id,
-		resp.StatusCode,
-		bodyBytes,
-		resp.Header,
-		err,
-	), err
+	gwr := &GatewayResponse{
+		GatewayBase: GatewayBase{
+			Id:         id,
+			url:        resp.Request.URL,
+			DisplayUrl: resp.Request.URL.String(),
+			Headers:    resp.Header,
+			Body:       bodyBytes,
+		},
+		StatusCode: resp.StatusCode,
+	}
+
+	return gwr, err
 }

@@ -10,7 +10,7 @@ type TrafficLightImpl struct {
 	Pulse Pulse
 }
 
-func (t *TrafficLightImpl) WaitForGreen(attemptNumber int) {
+func (t *TrafficLightImpl) WaitForGreen() {
 	// return straight away if no pulse has been configured
 	if t.Pulse == nil {
 		return
@@ -34,7 +34,6 @@ func init() {
 		"www.google.com",
 		10, // number of workers / size of pulses channel
 		1,  // pulse hertz
-		0,  // target hertz (this is TODO)
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -46,17 +45,18 @@ func init() {
 	})
 }
 
-func RegisterTrafficLight(t *TrafficLightImpl) {
+func RegisterTrafficLight(t *TrafficLightImpl) TrafficLight {
 	trafficLightInstance[strings.ToLower(t.Name)] = t
+	return trafficLightInstance[strings.ToLower(t.Name)]
 }
 
-func WaitForGreen(trafficLightName string, attemptNumber int) {
+func WaitForGreen(trafficLightName string) {
 	if tl := trafficLightInstance[strings.ToLower(trafficLightName)]; tl != nil {
-		log.Printf("Waiting for %s (attempt %d)", trafficLightName, attemptNumber)
-		tl.WaitForGreen(attemptNumber)
+		log.Printf("Waiting for %s", trafficLightName)
+		tl.WaitForGreen()
 		return
 	}
 
 	// No traffic light / no attenuation
-	log.Printf("No traffic light for %s (attempt %d)", trafficLightName, attemptNumber)
+	log.Printf("No traffic light for %s", trafficLightName)
 }

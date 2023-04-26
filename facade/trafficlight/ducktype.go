@@ -18,5 +18,5 @@ type Pulse interface {
 }
 
 type TrafficLight interface {
-	WaitForGreen(attemptNumber int)
+	WaitForGreen()
 }

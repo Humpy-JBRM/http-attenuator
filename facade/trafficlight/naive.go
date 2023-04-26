@@ -68,7 +68,7 @@ func GetPulse(name string) Pulse {
 	return pulseRegistry[strings.ToLower(name)]
 }
 
-func NewPulse(name string, numWorkers int, maxHertz float64, targetHertz float64) (Pulse, error) {
+func NewPulse(name string, numWorkers int, maxHertz float64) (Pulse, error) {
 	prMutex.RLock()
 	if _, exists := pulseRegistry[strings.ToLower(name)]; exists {
 		prMutex.RUnlock()
@@ -77,14 +77,10 @@ func NewPulse(name string, numWorkers int, maxHertz float64, targetHertz float64
 	prMutex.RUnlock()
 
 	pulse := &PulseImpl{
-		name:            name,
-		numWorkers:      numWorkers,
-		maxHertz:        maxHertz,
-		targetRateHertz: targetHertz,
-		pulseChan:       make(chan bool, numWorkers),
-	}
-	if targetHertz <= 0 {
-		pulse.targetRateHertz = pulse.maxHertz
+		name:       name,
+		numWorkers: numWorkers,
+		maxHertz:   maxHertz,
+		pulseChan:  make(chan bool, numWorkers),
 	}
 	prMutex.Lock()
 	pulseRegistry[strings.ToLower(name)] = pulse

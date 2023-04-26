@@ -2,6 +2,7 @@ package client
 
 import (
 	"http-attenuator/data"
+	"net/http"
 )
 
 // HttpClient handles all of the retry logic etc
@@ -15,8 +16,6 @@ import (
 //   - rate/limiting and attenuation
 type HttpClient interface {
 	Do(*data.GatewayRequest) (*data.GatewayResponse, error)
-	Get(*data.GatewayRequest) (*data.GatewayResponse, error)
-	Post(*data.GatewayRequest) (*data.GatewayResponse, error)
 }
 
 type HttpClientImpl struct {
@@ -29,6 +28,9 @@ type HttpClientImpl struct {
 	// Functions to execute to determine whether or not a request
 	// was successful
 	Success []data.SuccessFunc `json:"-"`
+
+	// Underlying http request
+	req *http.Request
 }
 
 type HttpClientBuilder interface {

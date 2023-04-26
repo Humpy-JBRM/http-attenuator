@@ -96,7 +96,16 @@ func (cb *httpClientBuilder) Success(fSuccess ...data.SuccessFunc) HttpClientBui
 
 func (cb *httpClientBuilder) Build() (HttpClient, error) {
 	defensiveCopy := cb.impl
+	if defensiveCopy.req != nil {
+		// take a defensive clone of the request
+		defensiveCopy.req = defensiveCopy.req.Clone(defensiveCopy.req.Context())
+	}
 	return &defensiveCopy, nil
+}
+
+func (cb *httpClientBuilder) Request(req *http.Request) HttpClientBuilder {
+	cb.impl.req = req
+	return cb
 }
 
 func (c *HttpClientImpl) Do(req *data.GatewayRequest) (*data.GatewayResponse, error) {
@@ -107,14 +116,14 @@ func (c *HttpClientImpl) Do(req *data.GatewayRequest) (*data.GatewayResponse, er
 		Timeout: time.Duration(c.TimeoutMillis * int64(time.Millisecond)),
 	}
 
-	httpClientRequests.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
-	httpClientRequestBytes.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(len(req.Body)))
+	httpClientRequests.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Inc()
+	httpClientRequestBytes.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Add(float64(len(req.Body)))
 	nowMillis := time.Now().UTC().UnixMilli()
-	request, err := http.NewRequest(strings.ToUpper(req.Method), req.GetUrl().String(), nil)
+	request, err := http.NewRequest(strings.ToUpper(req.GetRequest().Method), req.GetUrl().String(), nil)
 	if err != nil {
 		resp := data.NewGatewayResponse(req.Id, http.StatusBadRequest, []byte{}, http.Header{}, err)
 		resp.DurationMillis = (time.Now().UTC().UnixMilli() - nowMillis)
-		httpClientRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
+		httpClientRequestsFailures.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Inc()
 		return resp, err
 	}
 	request.Header = req.Headers
@@ -123,22 +132,22 @@ func (c *HttpClientImpl) Do(req *data.GatewayRequest) (*data.GatewayResponse, er
 	if err != nil {
 		resp, e := data.NewGatewayResponse(req.Id, http.StatusBadRequest, []byte{}, http.Header{}, err), err
 		resp.DurationMillis = (time.Now().UTC().UnixMilli() - nowMillis)
-		httpClientRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
+		httpClientRequestsFailures.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Inc()
 		return resp, e
 	}
-	httpClientRequestsLatency.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
+	httpClientRequestsLatency.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	if response == nil {
 		e := fmt.Errorf("ERROR: %s: Got nil response from server", req.GetUrl().String())
 		resp := data.NewGatewayResponse(req.Id, http.StatusBadRequest, []byte{}, http.Header{}, e)
 		resp.DurationMillis = (time.Now().UTC().UnixMilli() - nowMillis)
-		httpClientRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
+		httpClientRequestsFailures.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Inc()
 		return resp, e
 	}
 
 	responseBytes, err := ioutil.ReadAll(response.Body)
 	response.Body.Close()
-	httpClientResponseBytes.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(len(responseBytes)))
-	httpClientResponses.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path, fmt.Sprint(response.StatusCode)).Inc()
+	httpClientResponseBytes.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Add(float64(len(responseBytes)))
+	httpClientResponses.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path, fmt.Sprint(response.StatusCode)).Inc()
 
 	resp := data.NewGatewayResponse(
 		req.Id,
@@ -149,12 +158,4 @@ func (c *HttpClientImpl) Do(req *data.GatewayRequest) (*data.GatewayResponse, er
 	)
 	resp.DurationMillis = (time.Now().UTC().UnixMilli() - nowMillis)
 	return resp, err
-}
-
-func (c *HttpClientImpl) Get(req *data.GatewayRequest) (*data.GatewayResponse, error) {
-	return c.Do(req)
-}
-
-func (c *HttpClientImpl) Post(req *data.GatewayRequest) (*data.GatewayResponse, error) {
-	return c.Do(req)
 }

@@ -59,8 +59,10 @@ func TestBackendForwardProxy(t *testing.T) {
 	// Now map any headers
 	//
 	// TODO(john): encapsulate this
-	for k, v := range backend.Headers {
-		req.Headers.Add(k, v)
+	for k, values := range backend.Headers {
+		for _, v := range values {
+			req.Headers.Add(k, v)
+		}
 	}
 
 	resp, err := NewForwardProxy(backend).DoSync(req)

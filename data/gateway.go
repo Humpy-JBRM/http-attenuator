@@ -1,6 +1,9 @@
 package data
 
 import (
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -31,7 +34,7 @@ type GatewayBase struct {
 	Headers http.Header `json:"headers"`
 
 	// Request body (if any)
-	Body *[]byte `json:"body,omitempty"`
+	Body []byte `json:"body,omitempty"`
 }
 
 func (g *GatewayBase) GetUrl() *url.URL {
@@ -44,7 +47,28 @@ type GatewayRequest struct {
 	Method string `json:"method"`
 }
 
-func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers http.Header, body *[]byte) *GatewayRequest {
+func NewGatewayRequestFromHttp(id string, req *http.Request) (*GatewayRequest, error) {
+	var bodyBytes []byte
+	var err error
+	if req.Body != nil {
+		bodyBytes, err = io.ReadAll(req.Body)
+		req.Body.Close()
+		if err != nil {
+			e := fmt.Errorf("NewGatewayRequestFromHttp(%s): %s", req.URL.String(), err.Error())
+			log.Println(e)
+			return nil, e
+		}
+	}
+	return NewGatewayRequest(
+		id,
+		req.Method,
+		req.URL,
+		req.Header,
+		bodyBytes,
+	), nil
+}
+
+func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers http.Header, body []byte) *GatewayRequest {
 	idToUse := id
 	if id == "" {
 		idToUse = uuid.NewString()
@@ -65,11 +89,42 @@ func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers ht
 }
 
 type GatewayResponse struct {
-	GatewayBase
-	StatusCode     int   `json:"status_code"`
-	DurationMillis int64 `json:"duration_millis"`
+	Id             string      `json:"id"`
+	Headers        http.Header `json:"headers"`
+	Body           []byte      `json:"body,omitempty"`
+	StatusCode     int         `json:"status_code"`
+	WhenMillis     int64       `json:"duration_millis"`
+	DurationMillis int64       `json:"timestamp"`
+	Error          error       `json:"error,omitempty"`
 }
 
-func NewGatewayResponse() *GatewayResponse {
-	return &GatewayResponse{}
+func NewGatewayResponse(id string, statusCode int, body []byte, headers http.Header, err error) *GatewayResponse {
+	return &GatewayResponse{
+		Id:         id,
+		Headers:    headers,
+		Body:       body,
+		StatusCode: statusCode,
+		Error:      err,
+	}
+}
+
+func NewGatewayResponseFromHttp(id string, url *url.URL, resp *http.Response) (*GatewayResponse, error) {
+	var bodyBytes []byte
+	var err error
+	if resp.Body != nil {
+		bodyBytes, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			e := fmt.Errorf("NewGatewayRequestFromHttp(%s): %s", url.String(), err.Error())
+			log.Println(e)
+			return nil, e
+		}
+	}
+	return NewGatewayResponse(
+		id,
+		resp.StatusCode,
+		bodyBytes,
+		resp.Header,
+		err,
+	), err
 }

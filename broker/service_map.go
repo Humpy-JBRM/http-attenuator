@@ -16,7 +16,7 @@ type ServiceMap interface {
 }
 
 type serviceMap struct {
-	upstream map[string]*Upstream
+	upstream map[string]*BrokeredServiceImpl
 }
 
 var serviceMapInstance ServiceMap
@@ -25,7 +25,7 @@ var serviceMapOnce sync.Once
 func GetServiceMap() ServiceMap {
 	serviceMapOnce.Do(func() {
 		smi := &serviceMap{
-			upstream: make(map[string]*Upstream),
+			upstream: make(map[string]*BrokeredServiceImpl),
 		}
 
 		upstreamMap, err := config.Config().GetValue(data.CONF_BROKER_UPSTREAM)
@@ -35,7 +35,7 @@ func GetServiceMap() ServiceMap {
 
 		totalWeight := float64(0)
 		for serviceName, backendMap := range upstreamMap.(map[string]interface{}) {
-			upstream := &Upstream{
+			upstream := &BrokeredServiceImpl{
 				Name:     serviceName,
 				Backends: make([]Backend, 0),
 			}
@@ -83,7 +83,7 @@ func GetServiceMap() ServiceMap {
 		}
 
 		// Add the default gateway / forward proxy
-		defaultGateway := &Upstream{
+		defaultGateway := &BrokeredServiceImpl{
 			Name: "gateway",
 			Backends: []Backend{
 				*NewDefaultGateway(),

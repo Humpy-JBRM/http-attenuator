@@ -6,6 +6,7 @@ import (
 	config "http-attenuator/facade/config"
 	"log"
 	"math"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -24,7 +25,7 @@ type Backend struct {
 	Params map[string]string `json:"params"`
 
 	// Any headers we want to set in outgoing requests
-	Headers map[string]string `json:"params"`
+	Headers http.Header `json:"params"`
 
 	// Temperature is kind of analagous to load.
 	//
@@ -83,7 +84,7 @@ func NewDefaultGateway() *Backend {
 		Service:            "gateway",
 		Label:              "default",
 		Params:             make(map[string]string),
-		Headers:            make(map[string]string),
+		Headers:            make(http.Header),
 		RecordRequestRoot:  recordRequestsRoot,
 		RecordResponseRoot: recordResponsesRoot,
 	}
@@ -141,7 +142,7 @@ func NewBackendFromConfig(service string, label string, configMap map[string]int
 			Impl:    implementation,
 			Url:     url,
 			Params:  make(map[string]string),
-			Headers: make(map[string]string),
+			Headers: make(http.Header),
 			Weight:  weight,
 			Cost:    cost,
 		}
@@ -165,7 +166,10 @@ func NewBackendFromConfig(service string, label string, configMap map[string]int
 		switch values.(type) {
 		case map[string]interface{}:
 			for k, v := range values.(map[string]interface{}) {
-				backend.Headers[k] = fmt.Sprint(v)
+				if _, exists := backend.Headers[k]; !exists {
+					backend.Headers[k] = make([]string, 0)
+				}
+				backend.Headers[k] = append(backend.Headers[k], fmt.Sprint(v))
 			}
 		}
 	}
@@ -188,7 +192,7 @@ func NewBackend(service string, label string, url *url.URL) *Backend {
 		Label:   label,
 		Url:     url,
 		Params:  make(map[string]string),
-		Headers: make(map[string]string),
+		Headers: make(http.Header),
 
 		windowSizeMillis: 1000,
 		stats:            make(chan *statistic, 100),

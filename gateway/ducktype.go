@@ -7,3 +7,6 @@ import (
 type Gateway interface {
 	DoSync(req *data.GatewayRequest) error
 }
+
+type Pathology interface {
+}

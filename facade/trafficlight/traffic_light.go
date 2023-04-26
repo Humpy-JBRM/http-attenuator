@@ -7,16 +7,16 @@ import (
 
 type TrafficLightImpl struct {
 	Name  string
-	pulse Pulse
+	Pulse Pulse
 }
 
 func (t *TrafficLightImpl) WaitForGreen(attemptNumber int) {
 	// return straight away if no pulse has been configured
-	if t.pulse == nil {
+	if t.Pulse == nil {
 		return
 	}
 
-	t.pulse.WaitForNext()
+	t.Pulse.WaitForNext()
 }
 
 // traffic light singleton
@@ -27,7 +27,7 @@ var trafficLightInstance map[string]TrafficLight = map[string]TrafficLight{}
 func init() {
 	RegisterTrafficLight(&TrafficLightImpl{
 		Name:  "",
-		pulse: nil,
+		Pulse: nil,
 	})
 
 	pulse, err := NewPulse(
@@ -42,7 +42,7 @@ func init() {
 	RegisterTrafficLight(&TrafficLightImpl{
 		Name: "www.google.com",
 		// assume 10 workers, pulse is 1 per second
-		pulse: pulse,
+		Pulse: pulse,
 	})
 }
 

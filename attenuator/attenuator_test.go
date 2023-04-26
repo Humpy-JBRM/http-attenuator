@@ -11,8 +11,8 @@ import (
 )
 
 func TestSimpleGetSync(t *testing.T) {
-	os.Setenv("CONFIG_FILE", "../../config.yml")
-	hertz := 1.0
+	os.Setenv("CONFIG_FILE", "../config.yml")
+	hertz := 0.2
 	iterations := 10
 	at, err := NewAttenuator(
 		"foo",
@@ -50,7 +50,7 @@ func TestSimpleGetSync(t *testing.T) {
 		}
 		needle := ">Google.co.uk<"
 		if response.Body != nil {
-			haystack := string(*response.Body)
+			haystack := string(response.Body)
 			if !strings.Contains(haystack, needle) {
 				t.Errorf("Expected body to contain '%s', but got body\n%s", needle, haystack)
 			}

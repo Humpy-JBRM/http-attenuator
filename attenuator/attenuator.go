@@ -2,10 +2,10 @@ package attenuator
 
 import (
 	"fmt"
-	"http-attenuator/circuitbreaker"
+	client "http-attenuator/client"
 	"http-attenuator/data"
 	config "http-attenuator/facade/config"
-	"strings"
+	trafficlight "http-attenuator/facade/trafficlight"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -58,10 +58,12 @@ type attenuator struct {
 }
 
 func NewAttenuator(name string, maxHertz float64, targetHertz float64, workers int) (Attenuator, error) {
-	pulse := GetPulse(name)
+	pulse := trafficlight.GetPulse(name)
 	var err error
 	if pulse == nil {
-		pulse, err = NewPulse(name, workers, maxHertz, targetHertz)
+		// TODO(john): hook this up and encapsulate it behind the pulse
+		// factory, so we can use redis
+		pulse, err = trafficlight.NewPulse(name, workers, maxHertz, targetHertz)
 		if err != nil {
 			return nil, err
 		}
@@ -70,10 +72,10 @@ func NewAttenuator(name string, maxHertz float64, targetHertz float64, workers i
 		return nil, fmt.Errorf("Unable to get pulse '%s'", name)
 	}
 
-	RegisterTrafficLight(
-		&TrafficLightImpl{
+	trafficlight.RegisterTrafficLight(
+		&trafficlight.TrafficLightImpl{
 			Name:  name,
-			pulse: pulse,
+			Pulse: pulse,
 		})
 
 	queueSize, _ := config.Config().GetInt(data.CONF_ATTENUATOR_QUEUESIZE)
@@ -99,70 +101,28 @@ func NewAttenuator(name string, maxHertz float64, targetHertz float64, workers i
 func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, error) {
 	// wait for green light
 	nowMillis := time.Now().UTC().UnixMilli()
-	WaitForGreen(a.name, 1)
+	trafficlight.WaitForGreen(a.name, 1)
 	attenuatedRequestsWaiting.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	attenuatedRequests.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
 
 	// Do the request
 	var err error
-	switch strings.ToLower(req.Method) {
-	case "get":
-		cb, err := circuitbreaker.NewCircuitBreakerBuilder().
-			Retries(0).
-			TimeoutMillis(10000).
-			Build()
-		if err != nil {
-			// out of switch
-			break
-		}
-
-		nowMillis := time.Now().UTC().UnixMilli()
-		code, body, headers, err := cb.HttpGet(req)
-		resp := &data.GatewayResponse{
-			GatewayBase:    req.GatewayBase,
-			StatusCode:     code,
-			DurationMillis: (time.Now().UTC().UnixMilli() - nowMillis),
-		}
-		resp.Body = &body
-		resp.Headers = headers
-		attenuatedRequestsLatency.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
-		return resp, err
-
-	case "post":
-		cb, err := circuitbreaker.NewCircuitBreakerBuilder().
-			Retries(0).
-			TimeoutMillis(10000).
-			Build()
-		if err != nil {
-			// out of switch
-			break
-		}
-
-		nowMillis := time.Now().UTC().UnixMilli()
-		code, body, headers, err := cb.HttpPost(req)
-		resp := &data.GatewayResponse{
-			GatewayBase:    req.GatewayBase,
-			StatusCode:     code,
-			DurationMillis: (time.Now().UTC().UnixMilli() - nowMillis),
-		}
-		resp.Body = &body
-		resp.Headers = headers
-		attenuatedRequestsLatency.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
-		return resp, err
-
-	default:
-		panic(fmt.Sprintf("Implement %s %s", strings.ToUpper(req.Method), req.GetUrl().String()))
-
+	cb, err := client.NewHttpClientBuilder().
+		Retries(0).
+		TimeoutMillis(10000).
+		Build()
+	if err != nil {
+		// out of switch
+		attenuatedRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
+		return nil, err
 	}
+
+	resp, err := cb.Do(req)
+	attenuatedRequestsLatency.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	if err != nil {
 		attenuatedRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
 	}
-	return nil, err
-}
-
-func (a *attenuator) DoAsync(req *data.GatewayRequest, callback AttenuatorCallback) error {
-	panic("Async not implemented in MVP")
-	return nil
+	return resp, err
 }
 
 func (a *attenuator) GetName() string {

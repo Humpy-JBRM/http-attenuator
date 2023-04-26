@@ -87,7 +87,14 @@ func (cm *naiiveConfigManagerImpl) GetInt(name string, defaultValue ...int64) (i
 		return defaultVal, nil
 	}
 
-	return val.(int64), nil
+	switch val.(type) {
+	case float64, float32:
+		return int64(val.(float64)), nil
+	case int:
+		return int64(val.(int)), nil
+	default:
+		return val.(int64), nil
+	}
 }
 
 func (cm *naiiveConfigManagerImpl) GetFloat(name string, defaultValue ...float64) (float64, error) {

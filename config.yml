@@ -102,6 +102,7 @@ config:
             requests: search
             responses: search
           circuitbreaker:
+            max_concurrent: 2
             max_hertz: 2
             retries: 3
             timeout_millis: 10000
@@ -113,6 +114,7 @@ config:
             # we don't need to rename it or map it in any way
             q: q
           circuitbreaker:
+            max_concurrent: 2
             max_hertz: 2
             retries: 3
             timeout_millis: 10000

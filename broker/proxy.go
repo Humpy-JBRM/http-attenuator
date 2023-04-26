@@ -26,6 +26,7 @@ func NewForwardProxy(backend *Backend) *ForwardProxy {
 }
 
 func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayResponse, err error) {
+	now := time.Now().UTC().UnixMilli()
 	var recordRequestFile *os.File
 	if p.backend.RecordRequestRoot != "" {
 		recordPath := filepath.Join(p.backend.RecordRequestRoot, req.GetUrl().Host, req.Id+"-request.json")
@@ -66,8 +67,12 @@ func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayR
 		}
 	}
 	response = &data.GatewayResponse{
-		GatewayBase: req.GatewayBase,
-		StatusCode:  http.StatusNotImplemented,
+		Id:             req.Id,
+		Headers:        req.Headers,
+		Body:           req.Body,
+		WhenMillis:     now,
+		DurationMillis: time.Now().UTC().UnixMilli() - now,
+		StatusCode:     http.StatusNotImplemented,
 	}
 
 	httpRequest := &http.Request{
@@ -77,9 +82,9 @@ func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayR
 		Header: req.Headers,
 	}
 
-	if req.Body != nil && len(*req.Body) > 0 {
-		httpRequest.Body = io.NopCloser(bytes.NewReader(*req.Body))
-		httpRequest.ContentLength = int64(len(*req.Body))
+	if req.Body != nil && len(req.Body) > 0 {
+		httpRequest.Body = io.NopCloser(bytes.NewReader(req.Body))
+		httpRequest.ContentLength = int64(len(req.Body))
 	}
 
 	// Make the request
@@ -102,8 +107,8 @@ func (p *ForwardProxy) DoSync(req *data.GatewayRequest) (response *data.GatewayR
 	// Populate the response
 	response.StatusCode = resp.StatusCode
 	response.Headers = resp.Header
-	response.Body = &[]byte{}
-	*response.Body, err = io.ReadAll(resp.Body)
+	response.Body = []byte{}
+	response.Body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.GetUrl().String(), err.Error())
 		log.Println(err)

@@ -164,9 +164,11 @@ config:
     pool_size: 10
     # idle timeout in millis
     timeout: 5000
+  # Server pathology
   server:
     "google":
       failure_mode: httpcode
+      host: *.google.com
         # The HTTP codes to return, and the weight for each return code.
         # The weights do not need to add up to 100, I just made them add
         # up to 100 here so its easy to grok the % of time that code is returned
@@ -174,10 +176,11 @@ config:
         "401": 5
         "404": 1
         "500": 14
-      # Conditions under which 429 is returned
+      # Conditions under which we do rate-limiting
       rate_limit:
         # Max number of requests/sec 
         rate: 2
+        code: 429
         headers:
           X-Backoff-Millis: 60000
           X-Retry-After: ${now} + 60s

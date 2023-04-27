@@ -21,7 +21,7 @@ type ConfigApi interface {
 	SetInt(string, int64) error
 	SetFloat(string, float64) error
 	SetBool(string, bool) error
-	GetAllValues(root string) (map[string]string, error)
+	GetAllValues(root string) (map[string]interface{}, error)
 }
 
 type ConfigManager interface {

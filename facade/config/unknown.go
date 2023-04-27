@@ -57,9 +57,8 @@ func (cm *unknownConfigManager) SetBool(name string, value bool) error {
 }
 
 func (cm *unknownConfigManager) Reset() {
-	panic(fmt.Sprintf("ERROR|facade/config.unknown.Reset()| Unknown config type: %s", cm.typeName))
 }
 
-func (cm *unknownConfigManager) GetAllValues(root string) (map[string]string, error) {
-	panic(fmt.Sprintf("ERROR|facade/config.unknown.GetAllValues()| Unknown config type: %s", cm.typeName))
+func (cm *unknownConfigManager) GetAllValues(root string) (map[string]interface{}, error) {
+	return nil, fmt.Errorf("ERROR|facade/config.unknown.GetAllValues()| Unknown config type: %s", cm.typeName)
 }

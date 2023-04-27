@@ -155,6 +155,6 @@ func (cm *naiiveConfigManagerImpl) Reset() {
 	viper.Reset()
 }
 
-func (cm *naiiveConfigManagerImpl) GetAllValues(root string) (map[string]string, error) {
-	panic("TODO(john): Implement naive.GetAllValues()")
+func (cm *naiiveConfigManagerImpl) GetAllValues(root string) (map[string]interface{}, error) {
+	return viper.Get(root).(map[string]interface{}), nil
 }

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -9,14 +9,22 @@ import (
 )
 
 type returnCodeCdf struct {
-	code   int
-	weight int
-	cdf    float64
+	code    int
+	weight  int
+	cdf     float64
+	headers http.Header
 }
 
 type HttpCodeHandler struct {
 	BaseHandler
 	cdf []returnCodeCdf
+	rng *rand.Rand
+}
+
+// NewHttpCodeHandlerFromConfig creates a handler from the provided config,
+// which could be YML, JSON or just a map
+func NewHttpCodeHandlerFromConfig(map[string]interface{}) (Handler, error) {
+	return nil, nil
 }
 
 func NewHttpCodeHandler(name string, weights map[int]int) Handler {
@@ -27,8 +35,9 @@ func NewHttpCodeHandler(name string, weights map[int]int) Handler {
 	for code, weight := range weights {
 		totalWeight += weight
 		rcdf := returnCodeCdf{
-			code:   code,
-			weight: weight,
+			code:    code,
+			weight:  weight,
+			headers: make(http.Header),
 		}
 		cdf = append(cdf, rcdf)
 	}
@@ -43,24 +52,21 @@ func NewHttpCodeHandler(name string, weights map[int]int) Handler {
 			name: name,
 		},
 		cdf: cdf,
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-// HttpCodeHandler sleeps for a given time before responding,
-// or it sleeps forever and never returns.
-//
-// It is used to simulate servers that are slow or which
-// otherwise time out
+// HttpCodeHandler returns a variety of status codes according
+// to the cdf
 func (h *HttpCodeHandler) Handle(c *gin.Context) {
-	if h.httpcodeMillis <= 0 {
-		// Sleep forever.  Never returns
-		log.Printf("%s.Handle(): sleep forever", h.name)
-		select {}
+	probability := h.rng.Float64()
+	for _, cumulative := range h.cdf {
+		if cumulative.cdf <= probability {
+			c.Status(cumulative.code)
+			return
+		}
 	}
 
-	log.Printf("%s.Handle(): sleep for %dms", h.name, h.httpcodeMillis)
-	time.Sleep(time.Duration(h.httpcodeMillis))
-
-	// TODO(john): set the response to return in config
+	// Default to HTTP 200 OK
 	c.Status(http.StatusOK)
 }

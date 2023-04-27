@@ -1,0 +1,34 @@
+config:
+  pathology:
+    simple:
+      # The failure pathology
+      #
+      #   pathology: weight
+      failure_weights:
+        httpcode: 90
+        timeout: 10
+      # The http code pathology 
+      httpcode:
+        # The HTTP codes to return, and the weight for each return code.
+        # The weights do not need to add up to 100, I just made them add
+        # up to 100 here so its easy to grok the % of time that code is returned
+        "200":
+          weight: 80
+        "401":
+          weight: 5
+        "404":
+          weight: 1
+        "429":
+          weight: 5
+          # The headers to return when we encounter this code
+          headers:
+            X-Backoff-Millis: 60000
+            X-Retry-After: ${now} + 60s
+        "500":
+          weight: 9
+      # For the timeout pathology, the number of milliseconds to sleep for
+      # when handling a request
+      timeout_millis: 10000
+  server:
+    listen: 0.0.0.0:8888
+

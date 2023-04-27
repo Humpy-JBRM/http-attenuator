@@ -1,6 +1,9 @@
 package server
 
 import (
+	"fmt"
+	"http-attenuator/data"
+	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -8,65 +11,131 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type returnCodeCdf struct {
-	code    int
-	weight  int
-	cdf     float64
-	headers http.Header
+type HttpCodeCdf struct {
+	code           int
+	weight         int
+	cdf            float64
+	durationMean   float64
+	durationStddev float64
+	headers        http.Header
+	jsonBody       []byte
+}
+
+type HttpCodeCdfBuilder interface {
+	Reset() HttpCodeCdfBuilder
+	Code(code int) HttpCodeCdfBuilder
+	Weight(weight int) HttpCodeCdfBuilder
+	CDF(cdf float64) HttpCodeCdfBuilder
+	DurationMean(mean float64) HttpCodeCdfBuilder
+	DurationStddev(stddev float64) HttpCodeCdfBuilder
+	AddHeader(name string, value string) HttpCodeCdfBuilder
+	Body(jsonBytes []byte) HttpCodeCdfBuilder
+	Build() *HttpCodeCdf
+}
+
+type HttpCodeCdfBuilderImpl struct {
+	impl HttpCodeCdf
+}
+
+func NewHttpCodeCdfBuilder() HttpCodeCdfBuilder {
+	return &HttpCodeCdfBuilderImpl{
+		impl: HttpCodeCdf{
+			headers: make(http.Header),
+		},
+	}
+}
+
+func (b *HttpCodeCdfBuilderImpl) Reset() HttpCodeCdfBuilder {
+	b.impl = HttpCodeCdf{
+		headers: make(http.Header),
+	}
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) Code(code int) HttpCodeCdfBuilder {
+	b.impl.code = code
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) Weight(weight int) HttpCodeCdfBuilder {
+	b.impl.weight = weight
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) CDF(cdf float64) HttpCodeCdfBuilder {
+	b.impl.cdf = cdf
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) DurationMean(mean float64) HttpCodeCdfBuilder {
+	b.impl.durationMean = mean
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) DurationStddev(stddev float64) HttpCodeCdfBuilder {
+	b.impl.durationStddev = stddev
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) AddHeader(name string, value string) HttpCodeCdfBuilder {
+	b.impl.headers.Add(name, value)
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) Body(jsonBytes []byte) HttpCodeCdfBuilder {
+	b.impl.jsonBody = jsonBytes
+	return b
+}
+
+func (b *HttpCodeCdfBuilderImpl) Build() *HttpCodeCdf {
+	defensiveCopy := b.impl
+	return &defensiveCopy
+}
+
+// make returnCodeCdf conform to the HasCDF interface
+// so we can use our generic ChooseFromCDF() function
+func (f *HttpCodeCdf) CDF() float64 {
+	return f.cdf
 }
 
 type HttpCodeHandler struct {
 	BaseHandler
-	cdf []returnCodeCdf
+	cdf []data.HasCDF
 	rng *rand.Rand
-}
-
-// NewHttpCodeHandlerFromConfig creates a handler from the provided config,
-// which could be YML, JSON or just a map
-func NewHttpCodeHandlerFromConfig(map[string]interface{}) (Handler, error) {
-	return nil, nil
-}
-
-func NewHttpCodeHandler(name string, weights map[int]int) Handler {
-	cdf := make([]returnCodeCdf, 0)
-
-	// Calculate the total weight
-	totalWeight := 0
-	for code, weight := range weights {
-		totalWeight += weight
-		rcdf := returnCodeCdf{
-			code:    code,
-			weight:  weight,
-			headers: make(http.Header),
-		}
-		cdf = append(cdf, rcdf)
-	}
-
-	// Backpatch the cdf
-	for i := 0; i < len(cdf); i++ {
-		cdf[i].cdf = float64(float64(cdf[i].weight) / float64(totalWeight))
-	}
-
-	return &HttpCodeHandler{
-		BaseHandler: BaseHandler{
-			name: name,
-		},
-		cdf: cdf,
-		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
 }
 
 // HttpCodeHandler returns a variety of status codes according
 // to the cdf
 func (h *HttpCodeHandler) Handle(c *gin.Context) {
-	probability := h.rng.Float64()
-	for _, cumulative := range h.cdf {
-		if cumulative.cdf <= probability {
-			c.Status(cumulative.code)
-			return
+	// get the pathology - this is just for logging / monitoring
+	pathology, _ := c.Get("pathology")
+	pathologyRequests.WithLabelValues(fmt.Sprint(pathology), h.name, c.Request.Method).Inc()
+	choice := data.ChooseFromCDF(h.rng.Float64(), h.cdf)
+	if choice == nil {
+		pathologyErrors.WithLabelValues(fmt.Sprint(pathology), h.name, c.Request.Method).Inc()
+		err := fmt.Errorf("%s.Handle(): could not get handler", h.name)
+		log.Println(err)
+		c.AbortWithError(
+			http.StatusInternalServerError,
+			err,
+		)
+		return
+	}
+
+	// TODO(john): headers
+	pathologyResponses.WithLabelValues(fmt.Sprint(pathology), h.name, c.Request.Method, fmt.Sprint(choice.(*HttpCodeCdf).code)).Inc()
+
+	// If there is a delay / duration distribution, then do the sleep.
+	//
+	// The value is in seconds
+	if choice.(*HttpCodeCdf).durationMean > 0 && choice.(*HttpCodeCdf).durationStddev > 0 {
+		sleepSeconds := rand.NormFloat64()*choice.(*HttpCodeCdf).durationStddev + choice.(*HttpCodeCdf).durationMean
+		if sleepSeconds > 0 {
+			sleepTime := time.Duration(int64(sleepSeconds*1000)) * time.Millisecond
+			pathologyLatency.WithLabelValues(fmt.Sprint(pathology), h.name, c.Request.Method).Add(sleepSeconds * 1000)
+			time.Sleep(sleepTime)
 		}
 	}
 
-	// Default to HTTP 200 OK
-	c.Status(http.StatusOK)
+	c.Status(choice.(*HttpCodeCdf).code)
 }

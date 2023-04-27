@@ -7,10 +7,48 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var pathologyRequests = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pathology_requests",
+		Help:      "The requests handled by the various pathologies, keyed by name, handler and method",
+	},
+	[]string{"pathology", "handler", "method"},
+)
+var pathologyErrors = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pathology_errors",
+		Help:      "The requests handled by the various pathologies, keyed by name, handler and method",
+	},
+	[]string{"pathology", "handler", "method"},
+)
+var pathologyLatency = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pathology_latency",
+		Help:      "The latency of the various pathologies, keyed by name, handler and method",
+	},
+	[]string{"pathology", "handler", "method"},
+)
+var pathologyResponses = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "migaloo",
+		Name:      "pathology_responses",
+		Help:      "The responses from the various pathologies, keyed by name, method and status code",
+	},
+	[]string{"pathology", "handler", "method", "code"},
 )
 
 type FailureMode interface {
@@ -73,6 +111,7 @@ func (p *PathologyImpl) ChooseFailureMode() FailureMode {
 func (p *PathologyImpl) Handle(c *gin.Context) {
 	failureMode := p.ChooseFailureMode()
 	if failureMode == nil {
+		pathologyErrors.WithLabelValues(p.name, failureMode.GetName(), c.Request.Method).Inc()
 		err := fmt.Errorf("%s.Handle(): could not get handler", p.name)
 		log.Println(err)
 		c.AbortWithError(
@@ -82,6 +121,7 @@ func (p *PathologyImpl) Handle(c *gin.Context) {
 		return
 	}
 
+	c.Set("pathology", p.name)
 	failureMode.Handle(c)
 }
 
@@ -103,7 +143,7 @@ func (r *PathologyRegistryImpl) GetPathology(name string) Pathology {
 	return r.pathologiesByName[strings.ToLower(name)]
 }
 
-func NewPathologyRegistryFromConfig(pathologyRoot map[string]interface{}) error {
+func NewPathologyRegistryFromConfig() error {
 	pathologyRegistryImpl := &PathologyRegistryImpl{
 		pathologiesByName: make(map[string]Pathology),
 	}
@@ -123,6 +163,21 @@ func NewPathologyRegistryFromConfig(pathologyRoot map[string]interface{}) error 
 		err = parseFailureWeights(pathology)
 		if err != nil {
 			return err
+		}
+
+		for i := 0; i < len(pathology.failureModes.failureModes); i++ {
+			switch pathology.failureModes.failureModes[i].(*FailureModeImpl).name {
+			case "httpcode":
+				err = parseHttpCode(pathology)
+				if err != nil {
+					return err
+				}
+
+			case "timeout":
+
+			default:
+				return fmt.Errorf("NewPathologyRegistryFromConfig(): unrecognised failure mode: '%s'", pathology.failureModes.failureModes[i].(*FailureModeImpl).name)
+			}
 		}
 
 		// valuesRoot := data.CONF_PATHOLOGY + "." + pathologyName
@@ -198,44 +253,160 @@ func parseFailureWeights(pathology *PathologyImpl) error {
 	return nil
 }
 
-func parseHttpTimeouts(pathology *FailureModeImpl) error {
+// parseHttpCode reads in and parses the
+// config:
+//
+//	pathology:
+//	  # Pathologies have names.
+//	  #
+//	  # This allows us to easily create pathologies which have specific
+//	  # behaviour and then just refer to them by name in a particular
+//	  # server config.
+//	  #
+//	  # This ability will become even more imortant / useful as we
+//	  # extend the config API to allow backend servers to be created
+//	  # and configured programatically
+//	  simple:
+//	    # The failure pathology
+//	    #
+//	    #   pathology: weight
+//	    failure_weights:
+//	      httpcode: 90
+//	      timeout: 10
+//	    # The http code pathology
+//	    httpcode:
+//	      # The HTTP codes to return, and the weight for each return code.
+//	      # The weights do not need to add up to 100, I just made them add
+//	      # up to 100 here so its easy to grok the % of time that code is returned
+//	      "200":
+//	        duration: normal(1, 0.2)
+//	        weight: 80
+//	        headers:
+//	          Content-type: application/json
+//	        body: {"success": true}
+//	      "401":
+//	        weight: 5
+//	      "404":
+//	        weight: 1
+//	      "429":
+//	        weight: 5
+//	        # The headers to return when we encounter this code
+//	        headers:
+//	          X-Backoff-Millis: 60000
+//	          X-Retry-After: now() + 60s
+func parseHttpCode(pathology *PathologyImpl) error {
 	valuesRoot := data.CONF_PATHOLOGY + "." + pathology.name + ".httpcode"
-
-	// The values is a map[string]interface{}
-	// httpcode:
-	// 	"404":
-	// 	weight: 1
-	//   "429":
-	// 	weight: 5
-	// 	# The headers to return when we encounter this code
-	// 	headers:
-	// 	  X-Backoff-Millis: 60000
-	// 	  X-Retry-After: ${now} + 60s
-	httpCodes, err := config.Config().GetAllValues(valuesRoot)
+	httpCodeMap, err := config.Config().GetAllValues(valuesRoot)
 	if err != nil {
 		return err
 	}
-	if len(httpCodes) == 0 {
-		return fmt.Errorf("parseHttpTimeouts(%s): '%s' has no values", pathology.name, valuesRoot)
+	if len(httpCodeMap) == 0 {
+		return fmt.Errorf("parseHttpCode(%s): '%s' has no values", pathology.name, valuesRoot)
 	}
 
-	// for codeAsString := range httpCodes {
-	// 	codeAsInt, err := strconv.Atoi(codeAsString)
-	// 	if err != nil {
-	// 		return fmt.Errorf("parseHttpTimeouts(%s): '%s' is not a numeric httpcode", pathology.name, codeAsString)
-	// 	}
+	var totalWeight int64
+	normalDurationRegex := regexp.MustCompile(`normal\(([0-9]+.[0-9]+), ([0-9]+.[0-9]+)\)`)
+	cdf := make([]data.HasCDF, 0)
+	for httpCode := range httpCodeMap {
+		builder := NewHttpCodeCdfBuilder()
+		numericCode, err := strconv.Atoi(httpCode)
+		if err != nil {
+			return fmt.Errorf("%s: code '%s': %s", valuesRoot+"."+httpCode, httpCode, err.Error())
+		}
+		builder.Code(numericCode)
 
-	// 	valuesRoot := configName + "." + codeAsString
-	// 	values, err := config.Config().GetAllValues(valuesRoot)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	// configName = valuesRoot + ".timeout_millis"
-	// 	// pathology.timeoutMillis, err = config.Config().GetInt(configName)
-	// 	// if err != nil {
-	// 	// 	return pathologies, err
-	// 	// }
-	// }
+		// Is there any duration specified?
+		//
+		// TODO(john): a proper grammar, NOT brittle and janky regex
+		duration, err := config.Config().GetString(valuesRoot + "." + httpCode + ".duration")
+		if err != nil {
+			return err
+		}
+		var mean float64
+		var stddev float64
+		if duration != "" {
+			if !normalDurationRegex.MatchString(duration) {
+				return fmt.Errorf("%s: duration '%s' does not match %s", valuesRoot+"."+httpCode, duration, normalDurationRegex)
+			}
+			matches := normalDurationRegex.FindStringSubmatch(duration)
+			if len(matches) != 3 {
+				return fmt.Errorf("%s: duration '%s' does not match %s", valuesRoot+"."+httpCode, duration, normalDurationRegex)
+			}
+			mean, err = strconv.ParseFloat(matches[1], 64)
+			if err != nil {
+				return fmt.Errorf("%s: mean '%s': %s", valuesRoot+"."+httpCode, matches[1], err.Error())
+			}
+			if mean <= 0 {
+				return fmt.Errorf("%s: mean '%s': must be > 0", valuesRoot+"."+httpCode, matches[1])
+			}
+			stddev, err = strconv.ParseFloat(matches[2], 64)
+			if err != nil {
+				return fmt.Errorf("%s: stddev '%s': %s", valuesRoot+"."+httpCode, matches[2], err.Error())
+			}
+			if stddev <= 0 {
+				return fmt.Errorf("%s: stddev '%s': must be > 0", valuesRoot+"."+httpCode, matches[1])
+			}
+			builder.DurationMean(mean)
+			builder.DurationStddev(stddev)
+		}
+
+		weight, err := config.Config().GetInt(valuesRoot + "." + httpCode + ".weight")
+		if err != nil {
+			return err
+		}
+		builder.Weight(int(weight))
+		totalWeight += weight
+
+		// Any headers?
+		headers, err := config.Config().GetValue(valuesRoot + "." + httpCode + ".headers")
+		if err != nil {
+			return err
+		}
+		if headers != nil {
+			for k, v := range headers.(map[string]interface{}) {
+				builder.AddHeader(k, fmt.Sprint(v))
+			}
+		}
+
+		// Any response body?
+		responseBody, err := config.Config().GetValue(valuesRoot + "." + httpCode + ".body")
+		if err != nil {
+			return err
+		}
+		if responseBody != nil {
+			builder.Body([]byte(fmt.Sprint(responseBody)))
+		}
+
+		httpCodeCdf := builder.Build()
+		cdf = append(cdf, httpCodeCdf)
+	}
+
+	// Backpatch the CDF
+	var totalProbability float64
+	for i := 0; i < len(cdf); i++ {
+		totalProbability += float64(float64(cdf[i].(*HttpCodeCdf).weight) / float64(totalWeight))
+		cdf[i].(*HttpCodeCdf).cdf = totalProbability
+	}
+	sort.Slice(cdf, func(i, j int) bool {
+		return cdf[i].(*HttpCodeCdf).cdf < cdf[j].(*HttpCodeCdf).cdf
+	})
+
+	// create the httpCode handler
+	httpCodeHandler := &HttpCodeHandler{
+		BaseHandler: BaseHandler{
+			name: "httpcode",
+		},
+		cdf: cdf,
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+
+	// associate the handler with its failure mode
+	for i := 0; i < len(pathology.failureModes.failureModes); i++ {
+		if pathology.failureModes.failureModes[i].(*FailureModeImpl).name == "httpcode" {
+			pathology.failureModes.failureModes[i].(*FailureModeImpl).handler = httpCodeHandler
+			break
+		}
+	}
 
 	return nil
 }

@@ -45,6 +45,8 @@ Http-attenuator runs as a API gateway providing:
 
     - [tick] demonstrate service broker
 
+    - badly behaving server
+
     - useful service broker (storage: OneDrive, Drive, S3 - CRUD of same)
 
     - adaptive to 429

@@ -1,5 +1,14 @@
 config:
   pathology:
+    # Pathologies have names.
+    #
+    # This allows us to easily create pathologies which have specific
+    # behaviour and then just refer to them by name in a particular
+    # server config.
+    #
+    # This ability will become even more imortant / useful as we
+    # extend the config API to allow backend servers to be created
+    # and configured programatically
     simple:
       # The failure pathology
       #
@@ -13,7 +22,15 @@ config:
         # The weights do not need to add up to 100, I just made them add
         # up to 100 here so its easy to grok the % of time that code is returned
         "200":
+          duration: normal(1.0, 0.2)
           weight: 80
+          headers:
+            # any headers that we want the handler to return when this code
+            # is selected according to the cdf
+            Content-type: application/json
+          # any response body we want the handler to return when this code
+          # is selected according to the cdf
+          body: {"success": true}
         "401":
           weight: 5
         "404":
@@ -23,7 +40,7 @@ config:
           # The headers to return when we encounter this code
           headers:
             X-Backoff-Millis: 60000
-            X-Retry-After: ${now} + 60s
+            X-Retry-After: now() + 60s
         "500":
           weight: 9
       # For the timeout pathology, the number of milliseconds to sleep for

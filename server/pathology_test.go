@@ -1,9 +1,9 @@
 package server
 
 import (
-	"http-attenuator/data"
 	config "http-attenuator/facade/config"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -12,11 +12,7 @@ func TestNewPathologyFromConfig(t *testing.T) {
 	os.Setenv("CONFIG_FILE", "../test_resources/server/pathology_config.yml")
 	config.Config()
 
-	pathologyRoot, err := config.Config().GetAllValues(data.CONF_PATHOLOGY)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = NewPathologyRegistryFromConfig(pathologyRoot)
+	err := NewPathologyRegistryFromConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,6 +20,8 @@ func TestNewPathologyFromConfig(t *testing.T) {
 		t.Fatal("Expected a pathology of 'simple' but got nil")
 	}
 
+	// get the 'simple' pathology and check that it is configured
+	// exctly as we expect it to be
 	simple := GetPathologyRegistry().GetPathology("simple")
 	pathologyCdf := simple.(*PathologyImpl).failureModes.failureModes
 	if len(pathologyCdf) != 2 {
@@ -44,6 +42,44 @@ func TestNewPathologyFromConfig(t *testing.T) {
 	actualCdf := pathologyCdf[0].(*FailureModeImpl).cdf
 	if expectedCdf != actualCdf {
 		t.Errorf("Expected cdf='%f', but got '%f'", expectedCdf, actualCdf)
+	}
+
+	// We should have a httpcode FailureMode, with a handler
+	var httpCodeFailureMode *FailureModeImpl
+	for i := 0; i < len(pathologyCdf); i++ {
+		if pathologyCdf[i].(*FailureModeImpl).name == "httpcode" {
+			httpCodeFailureMode = pathologyCdf[i].(*FailureModeImpl)
+			break
+		}
+	}
+	if httpCodeFailureMode == nil {
+		t.Fatal("Expected to find a httpcode failure mode, but did not")
+	}
+
+	// This failure mode should have a HttpCodeHandler
+	if httpCodeFailureMode.handler == nil {
+		t.Fatal("httpcode failure mode has no handler")
+	}
+	if _, isHttpCodeHandler := httpCodeFailureMode.handler.(*HttpCodeHandler); !isHttpCodeHandler {
+		t.Fatalf("httpcode failure mode has handler %s, but expected HttpCodeHandler", reflect.TypeOf(httpCodeFailureMode.handler))
+	}
+	handler := httpCodeFailureMode.handler.(*HttpCodeHandler)
+
+	// This handler should have 5 entries in the CDF
+	if len(handler.cdf) != 5 {
+		t.Errorf("Expected httpcode hander to have 5 cdf entries but it has %d", len(handler.cdf))
+	}
+
+	// The first one should be for the http 200 code
+	if handler.cdf[0].(*HttpCodeCdf).code != 200 {
+		t.Errorf("Expected first cdf entry to be for code 200, but it is %d", handler.cdf[0].(*HttpCodeCdf).code)
+	}
+	http200CdfEntry := handler.cdf[0].(*HttpCodeCdf)
+	if http200CdfEntry.cdf != 0.8 {
+		t.Errorf("Expected first cdf entry to be for code 200 with cdf = 0.8, but it is %d with cdf = %f", handler.cdf[0].(*HttpCodeCdf).code, http200CdfEntry.cdf)
+	}
+	for _, c := range handler.cdf {
+		t.Errorf("%+v", c)
 	}
 
 	expectedName = "timeout"
@@ -70,6 +106,8 @@ func TestNewPathologyFromConfig(t *testing.T) {
 		}
 		choices[failureMode.(*FailureModeImpl).name]++
 	}
+
+	t.Fatal("TODO(john): timeout configuration")
 
 	// Out of 100 choices, we should have ~90% 'httpcode' and ~10% timeout
 	upper := 95

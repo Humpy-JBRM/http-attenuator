@@ -43,6 +43,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 
 func serverEndpoints(ginRouter *gin.Engine) {
 	ginRouter.NoRoute()
+	panic("TODO(john): spin up the naughty server")
 }
 
 func loadServerConfig(cmd *cobra.Command, args []string) {

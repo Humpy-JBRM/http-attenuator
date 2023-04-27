@@ -1,4 +1,4 @@
-package attenuator
+package client
 
 import (
 	"context"

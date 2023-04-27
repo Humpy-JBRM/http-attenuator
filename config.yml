@@ -1,10 +1,22 @@
 config:
   attenuator:
+    # Each attenuator is named.
+    #
+    # Individual things (global, service, backend, gateway) refer to
+    # them by name.
+    "google":
+      # Google allow us to do 1 per second max
+      hertz: 1.0
+      # TODO(john): 429 handling
+    "bing":
+      # Bing allow us to do 1 every 2 seconds max
+      hertz: 0.5
+      # TODO(john): 429 handling
     # Maximum number of inflight requests.
     #
     # TODO(john): allow this to be over-ridden on a service-by-service
     # (and backend-by-backend) basis
-    queue_size: 100
+    max_inflight: 100
   broker:
     upstream:
       # alex1m service
@@ -147,3 +159,25 @@ config:
   proxy:
     enable: true
     listen: 0.0.0.0:8080
+  redis:
+    host: localhost:6379
+    pool_size: 10
+    # idle timeout in millis
+    timeout: 5000
+  server:
+    "google":
+      failure_mode: httpcode
+        # The HTTP codes to return, and the weight for each return code.
+        # The weights do not need to add up to 100, I just made them add
+        # up to 100 here so its easy to grok the % of time that code is returned
+        "200": 80
+        "401": 5
+        "404": 1
+        "500": 14
+      # Conditions under which 429 is returned
+      rate_limit:
+        # Max number of requests/sec 
+        rate: 2
+        headers:
+          X-Backoff-Millis: 60000
+          X-Retry-After: ${now} + 60s

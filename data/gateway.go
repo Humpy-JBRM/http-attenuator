@@ -1,6 +1,7 @@
 package data
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -77,12 +78,22 @@ func NewGatewayRequestFromHttp(id string, req *http.Request) (*GatewayRequest, e
 	return gwr, nil
 }
 
-func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers http.Header, body []byte) *GatewayRequest {
+func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers http.Header, body []byte) (*GatewayRequest, error) {
 	idToUse := id
 	if id == "" {
 		idToUse = uuid.NewString()
 	}
 
+	req, err := http.NewRequest(
+		method,
+		requestUrl.String(),
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header = headers
 	gwr := &GatewayRequest{
 		GatewayBase: GatewayBase{
 			Id:         idToUse,
@@ -91,9 +102,10 @@ func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers ht
 			Headers:    headers,
 			Body:       body,
 		},
+		req: req,
 	}
 
-	return gwr
+	return gwr, nil
 }
 
 type GatewayResponse struct {

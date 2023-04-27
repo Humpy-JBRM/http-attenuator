@@ -11,10 +11,10 @@ import (
 )
 
 type PulseImpl struct {
-	name       string
-	numWorkers int
-	maxHertz   float64
-	pulseChan  chan (bool)
+	name        string
+	maxInflight int
+	maxHertz    float64
+	pulseChan   chan (bool)
 
 	// TODO(john): deal with current flow rate
 	currentRateHertz float64
@@ -24,6 +24,9 @@ type PulseImpl struct {
 	targetRateHertz float64
 
 	waitUntil *time.Time
+
+	// requests currently in flight
+	inflight chan bool
 }
 
 var pulses = promauto.NewCounterVec(
@@ -68,7 +71,7 @@ func GetPulse(name string) Pulse {
 	return pulseRegistry[strings.ToLower(name)]
 }
 
-func NewPulse(name string, numWorkers int, maxHertz float64) (Pulse, error) {
+func NewPulse(name string, maxInflight int, maxHertz float64) (Pulse, error) {
 	prMutex.RLock()
 	if _, exists := pulseRegistry[strings.ToLower(name)]; exists {
 		prMutex.RUnlock()
@@ -77,10 +80,11 @@ func NewPulse(name string, numWorkers int, maxHertz float64) (Pulse, error) {
 	prMutex.RUnlock()
 
 	pulse := &PulseImpl{
-		name:       name,
-		numWorkers: numWorkers,
-		maxHertz:   maxHertz,
-		pulseChan:  make(chan bool, numWorkers),
+		name:        name,
+		maxInflight: maxInflight,
+		maxHertz:    maxHertz,
+		pulseChan:   make(chan bool, 1),
+		inflight:    make(chan bool, maxInflight),
 	}
 	prMutex.Lock()
 	pulseRegistry[strings.ToLower(name)] = pulse
@@ -121,10 +125,30 @@ func NewPulse(name string, numWorkers int, maxHertz float64) (Pulse, error) {
 	return pulse, nil
 }
 
+// startInflight waits until there are < maxInflight requests
+// currently in flight
+func (p *PulseImpl) startInflight() error {
+	// this will block until an inflight slot is available
+	p.inflight <- true
+	return nil
+}
+
+// finishInflight notifies the pulse that an inflight
+// request has finished
+func (p *PulseImpl) finishInflight() error {
+	select {
+	case <-p.inflight:
+	default:
+	}
+	return nil
+}
+
 func (p *PulseImpl) WaitForNext() error {
-	// log.Println("Waiting for traffic light")
+	// Wait until the number currently in flight is lower than
+	// the max allowed
+	defer p.finishInflight()
+	p.startInflight()
 	<-p.pulseChan
-	// log.Println("Got traffic light")
 	return nil
 }
 

@@ -1,10 +1,15 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"http-attenuator/data"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -79,6 +84,11 @@ func NewHttpClientBuilder() HttpClientBuilder {
 	}
 }
 
+func (cb *httpClientBuilder) Attenuator(attenuator Attenuator) HttpClientBuilder {
+	cb.impl.attenuator = attenuator
+	return cb
+}
+
 func (cb *httpClientBuilder) Retries(retries int) HttpClientBuilder {
 	cb.impl.Retries = retries
 	return cb
@@ -91,6 +101,16 @@ func (cb *httpClientBuilder) TimeoutMillis(timeoutMillis int64) HttpClientBuilde
 
 func (cb *httpClientBuilder) Success(fSuccess ...data.SuccessFunc) HttpClientBuilder {
 	cb.impl.Success = append(cb.impl.Success, fSuccess...)
+	return cb
+}
+
+func (cb *httpClientBuilder) RecordRequest(recordRequestRoot string) HttpClientBuilder {
+	cb.impl.RecordRequestRoot = recordRequestRoot
+	return cb
+}
+
+func (cb *httpClientBuilder) RecordResponse(recordResponseRoot string) HttpClientBuilder {
+	cb.impl.RecordResponseRoot = recordResponseRoot
 	return cb
 }
 
@@ -108,7 +128,11 @@ func (cb *httpClientBuilder) Request(req *http.Request) HttpClientBuilder {
 	return cb
 }
 
-func (c *HttpClientImpl) Do(req *data.GatewayRequest) (*data.GatewayResponse, error) {
+func (c *HttpClientImpl) Do(ctx context.Context, req *data.GatewayRequest) (*data.GatewayResponse, error) {
+	c.recordRequest(ctx, req)
+
+	// Wait on the attenuator
+
 	var netClient = &http.Client{
 		// TODO(john): CheckRedirect func(req *Request, via []*Request) error
 		// TODO(john): Jar CookieJar
@@ -157,5 +181,80 @@ func (c *HttpClientImpl) Do(req *data.GatewayRequest) (*data.GatewayResponse, er
 		err,
 	)
 	resp.DurationMillis = (time.Now().UTC().UnixMilli() - nowMillis)
+	c.recordResponse(ctx, resp)
 	return resp, err
+}
+
+func (c *HttpClientImpl) recordRequest(ctx context.Context, req *data.GatewayRequest) (err error) {
+	if c.RecordRequestRoot == "" {
+		// We are not recording requests
+		return nil
+	}
+
+	var recordRequestFile *os.File
+	if c.RecordRequestRoot != "" {
+		recordPath := filepath.Join(c.RecordRequestRoot, req.GetUrl().Host, req.Id+"-request.json")
+		os.MkdirAll(filepath.Dir(recordPath), 0755)
+		recordRequestFile, err = os.OpenFile(recordPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+		if err != nil {
+			err = fmt.Errorf("recordRequest(%s): %s", req.GetUrl().String(), err.Error())
+			log.Println(err)
+			return err
+		}
+		defer recordRequestFile.Close()
+	}
+	if recordRequestFile != nil {
+		if req.WhenMillis == 0 {
+			req.WhenMillis = time.Now().UTC().UnixMilli()
+		}
+		reqJson, err := json.MarshalIndent(req, "", "  ")
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		_, err = recordRequestFile.Write(reqJson)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return err
+}
+
+func (c *HttpClientImpl) recordResponse(ctx context.Context, req *data.GatewayResponse) (err error) {
+	if c.RecordResponseRoot == "" {
+		// We are not recording responses
+		return nil
+	}
+
+	var recordResponseFile *os.File
+	if c.RecordResponseRoot != "" {
+		recordPath := filepath.Join(c.RecordResponseRoot, req.GetUrl().Host, req.Id+"-response.json")
+		os.MkdirAll(filepath.Dir(recordPath), 0755)
+		recordResponseFile, err = os.OpenFile(recordPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+		if err != nil {
+			err = fmt.Errorf("recordResponse(%s): %s", req.GetUrl().String(), err.Error())
+			log.Println(err)
+			return err
+		}
+		defer recordResponseFile.Close()
+	}
+	if recordResponseFile != nil {
+		if req.WhenMillis == 0 {
+			req.WhenMillis = time.Now().UTC().UnixMilli()
+		}
+		reqJson, err := json.MarshalIndent(req, "", "  ")
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		_, err = recordResponseFile.Write(reqJson)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return err
 }

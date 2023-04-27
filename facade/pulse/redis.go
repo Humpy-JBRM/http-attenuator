@@ -2,9 +2,11 @@ package facade
 
 import (
 	"fmt"
+	"http-attenuator/data"
+	config "http-attenuator/facade/config"
+	"http-attenuator/util"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -13,39 +15,24 @@ import (
 type RedisPulseImpl struct {
 	PulseImpl
 	redisHost string
-}
-
-var poolQueue *redis.Pool
-var redisOnceQueue sync.Once
-
-func getConnectionPool() *redis.Pool {
-	redisOnceQueue.Do(func() {
-		// TODO(john): get these from config
-		maxIdle := 10
-		maxActive := 10
-		idleTimeout := 10 * time.Second
-
-		dialFunc := func() (redis.Conn, error) {
-			return redis.Dial("tcp", "localhost:6379",
-				redis.DialDatabase(0),
-			)
-		}
-		poolQueue = &redis.Pool{
-			MaxIdle:     maxIdle,
-			MaxActive:   maxActive,
-			IdleTimeout: idleTimeout,
-			Dial:        dialFunc,
-			TestOnBorrow: func(c redis.Conn, t time.Time) error {
-				_, err := c.Do("PING")
-				return err
-			},
-		}
-	})
-
-	return poolQueue
+	redisPool *redis.Pool
 }
 
 func NewRedisPulse(name string, numWorkers int, maxHertz float64, targetHertz float64, redisHost string) (Pulse, error) {
+	// Get the redis config values
+	redisHost, err := config.Config().GetString(data.CONF_REDIS_HOST)
+	if err != nil {
+		return nil, fmt.Errorf("NewRedisPulse(%s): %s", name, err.Error())
+	}
+	poolSize, err := config.Config().GetInt(data.CONF_REDIS_POOLSIZE)
+	if err != nil {
+		return nil, fmt.Errorf("NewRedisPulse(%s): %s", name, err.Error())
+	}
+	timeout, err := config.Config().GetInt(data.CONF_REDIS_TIMEOUT)
+	if err != nil {
+		return nil, fmt.Errorf("NewRedisPulse(%s): %s", name, err.Error())
+	}
+
 	prMutex.RLock()
 	if _, exists := pulseRegistry[strings.ToLower(name)]; exists {
 		prMutex.RUnlock()
@@ -56,11 +43,12 @@ func NewRedisPulse(name string, numWorkers int, maxHertz float64, targetHertz fl
 	pulse := &RedisPulseImpl{
 		PulseImpl: PulseImpl{
 			name:            name,
-			numWorkers:      numWorkers,
+			maxInflight:     numWorkers,
 			maxHertz:        maxHertz,
 			targetRateHertz: targetHertz,
 		},
 		redisHost: redisHost,
+		redisPool: util.NewRedisConnectionPool(redisHost, int(poolSize), time.Duration(timeout)*time.Millisecond),
 	}
 	if targetHertz < 0 {
 		pulse.targetRateHertz = 0
@@ -109,7 +97,7 @@ func NewRedisPulse(name string, numWorkers int, maxHertz float64, targetHertz fl
 func (p *RedisPulseImpl) WaitForNext() error {
 	// log.Println("Waiting for traffic light")
 	// log.Println("Got traffic light")
-	conn := getConnectionPool().Get()
+	conn := p.redisPool.Get()
 	if err := conn.Err(); err != nil {
 		return fmt.Errorf("redis.WaitForNext(): %s", err)
 	}
@@ -134,7 +122,7 @@ func (p *RedisPulseImpl) WaitForNext() error {
 // This is acceptable, the law of large numbers will smooth
 // it out
 func (p *RedisPulseImpl) sendPulse() error {
-	conn := getConnectionPool().Get()
+	conn := p.redisPool.Get()
 	if err := conn.Err(); err != nil {
 		return fmt.Errorf("redis.sendPulse(): %s", err)
 	}

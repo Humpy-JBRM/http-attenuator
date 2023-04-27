@@ -1,9 +1,9 @@
-package attenuator
+package client
 
 import (
 	"context"
 	"fmt"
-	trafficlight "http-attenuator/facade/trafficlight"
+	p "http-attenuator/facade/pulse"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,16 +24,16 @@ type AttenuatorImpl struct {
 	MaxHertz    float64 `json:"max_hertz"`
 	MaxInflight int     `json:"max_inflight"`
 	PulseName   string  `json:"pulse"`
-	pulse       trafficlight.Pulse
+	pulse       p.Pulse
 }
 
 func NewAttenuator(name string, maxHertz float64, maxInflight int) (Attenuator, error) {
-	pulse := trafficlight.GetPulse(name)
+	pulse := p.GetPulse(name)
 	var err error
 	if pulse == nil {
 		// TODO(john): hook this up and encapsulate it behind the pulse
 		// factory, so we can use redis
-		pulse, err = trafficlight.NewPulse(name, maxInflight, maxHertz)
+		pulse, err = p.NewPulse(name, maxInflight, maxHertz)
 		if err != nil {
 			return nil, err
 		}
@@ -56,33 +56,6 @@ func NewAttenuator(name string, maxHertz float64, maxInflight int) (Attenuator, 
 
 	return a, nil
 }
-
-// func (a *attenuator) DoSync(req *data.GatewayRequest) (*data.GatewayResponse, error) {
-// 	// wait for green light
-// 	nowMillis := time.Now().UTC().UnixMilli()
-// 	trafficlight.WaitForGreen(a.name, 1)
-// 	attenuatedRequestsWaiting.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
-// 	attenuatedRequests.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
-
-// 	// Do the request
-// 	var err error
-// 	cb, err := client.NewHttpClientBuilder().
-// 		Retries(0).
-// 		TimeoutMillis(10000).
-// 		Build()
-// 	if err != nil {
-// 		// out of switch
-// 		attenuatedRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
-// 		return nil, err
-// 	}
-
-// 	resp, err := cb.Do(req)
-// 	attenuatedRequestsLatency.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
-// 	if err != nil {
-// 		attenuatedRequestsFailures.WithLabelValues(req.GetUrl().Host, req.Method, req.GetUrl().Path).Inc()
-// 	}
-// 	return resp, err
-// }
 
 func (a *AttenuatorImpl) String() string {
 	return fmt.Sprintf("%s (%.2fHz, %d max)", a.Name, a.MaxHertz, a.MaxInflight)

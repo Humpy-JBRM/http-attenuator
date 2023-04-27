@@ -47,6 +47,10 @@ Http-attenuator runs as a API gateway providing:
 
     - useful service broker (storage: OneDrive, Drive, S3 - CRUD of same)
 
+    - adaptive to 429
+    
+    - billing / tribe / cost in grafana (measure consumption)
+
     - kubernetes + HELM
 
 ## Why You Would Use This

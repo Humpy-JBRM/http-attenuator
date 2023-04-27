@@ -12,4 +12,7 @@ const (
 	CONF_GATEWAY_RECORD_RESPONSES = "config.gateway.record.responses"
 	CONF_PROXY_ENABLE             = "config.proxy.enable"
 	CONF_PROXY_LISTEN             = "config.proxy.listen"
+	CONF_REDIS_HOST               = "config.redis.host"
+	CONF_REDIS_POOLSIZE           = "config.redis.pool_size"
+	CONF_REDIS_TIMEOUT            = "config.redis.timeout"
 )

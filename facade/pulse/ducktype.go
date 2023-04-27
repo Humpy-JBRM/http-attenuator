@@ -1,6 +1,8 @@
 package facade
 
-import "time"
+import (
+	"time"
+)
 
 // A Pulse emits a heartbeat every N milliseconds.
 //
@@ -15,8 +17,4 @@ type Pulse interface {
 
 	// pause hartbeats until a particular wallclock time is reached
 	SetPauseUntil(wallclock time.Time)
-}
-
-type TrafficLight interface {
-	WaitForGreen()
 }

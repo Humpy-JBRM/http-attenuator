@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"context"
 	"http-attenuator/data"
 	"net/http"
 	"net/url"
@@ -48,13 +49,16 @@ func TestBackendForwardProxy(t *testing.T) {
 	}
 	searchUrl.RawQuery = queryToSend.Encode()
 
-	req := data.NewGatewayRequest(
+	req, err := data.NewGatewayRequest(
 		"",
 		"GET",
 		searchUrl,
 		http.Header{},
 		nil,
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Now map any headers
 	//
@@ -65,12 +69,11 @@ func TestBackendForwardProxy(t *testing.T) {
 		}
 	}
 
-	resp, err := NewForwardProxy(backend).DoSync(req)
+	resp, err := NewForwardProxy(backend).DoSync(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp == nil {
 		t.Fatal("Got nil response")
 	}
-	t.Fatal("")
 }

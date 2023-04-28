@@ -123,8 +123,6 @@ func TestNewPathologyFromConfig(t *testing.T) {
 		choices[failureMode.(*FailureModeImpl).name]++
 	}
 
-	t.Fatal("TODO(john): timeout configuration")
-
 	// Out of 100 choices, we should have ~90% 'httpcode' and ~10% timeout
 	upper := 95
 	lower := 85

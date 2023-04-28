@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -24,6 +25,7 @@ const (
 	CONF_REDIS_HOST               = "config.redis.host"
 	CONF_REDIS_POOLSIZE           = "config.redis.pool_size"
 	CONF_REDIS_TIMEOUT            = "config.redis.timeout"
+	CONF_SERVER_ENABLE            = "config.server.enable"
 	CONF_SERVER_LISTEN            = "config.server.listen"
 )
 
@@ -36,7 +38,7 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	var appConfig AppConfig
 	err = yaml.Unmarshal(configBytes, &appConfig)
 	if err != nil {
-		return nil, fmt.Errorf("LoadCOnfig(%s): %s", configFile, err.Error())
+		return nil, fmt.Errorf("LoadConfig(%s): %s", configFile, err.Error())
 	}
 
 	// If we have a httpcode pathology in any of the profiles, then we need
@@ -47,7 +49,15 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	for _, profile := range appConfig.Config.Profiles {
 		if profile.HttpCode != nil {
 			for code, response := range profile.HttpCode.Responses {
+				// backpatch the http code
 				response.Code = code
+
+				// backpatch the duration
+				// durationAsTime, err := parseDuration(response.Duration)
+				// if err != nil {
+				// 	return nil, fmt.Errorf("LoadConfig(%s): httpcode.%d: %s", configFile, code, err.Error())
+				// }
+				// response.durationAsTime = durationAsTime
 			}
 		}
 	}
@@ -83,6 +93,21 @@ type HttpResponse struct {
 	Duration string      `yaml:"duration"`
 	Headers  http.Header `yaml:"headers"`
 	Body     string      `yaml:"body"`
+
+	// this needs to be backpatched because it is derived
+	// from the config value (which could be a formula)
+	durationConfig HasDuration
+}
+
+// HttpResponse should satisfy the HasDuration interface
+func (r *HttpResponse) GetDuration() *time.Duration {
+	if r.durationConfig == nil {
+		return nil
+	}
+
+	// delegate to the duration config to give us a duration
+	// according to its distribution
+	return r.durationConfig.GetDuration()
 }
 
 type TimeoutPathology struct {
@@ -94,6 +119,7 @@ type TimeoutPathology struct {
 type Server struct {
 	Name   string `yaml:"name"`
 	Listen string `yaml:"listen"`
+	Enable bool   `yaml:"enable"`
 
 	// Mapping of host header value -> implementation
 	Hosts map[string]ServerHost

@@ -1,4 +1,4 @@
-package server
+package data
 
 import "github.com/gin-gonic/gin"
 
@@ -8,9 +8,14 @@ type Handler interface {
 }
 
 type BaseHandler struct {
-	name string
+	Profile string
+	Name    string
+}
+
+func (h *BaseHandler) GetProfile() string {
+	return h.Profile
 }
 
 func (h *BaseHandler) GetName() string {
-	return h.name
+	return h.Name
 }

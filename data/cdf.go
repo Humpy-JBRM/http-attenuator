@@ -2,6 +2,7 @@ package data
 
 import (
 	"math/rand"
+	"time"
 )
 
 // HasCDF is used for selecting items from a slice based on
@@ -9,7 +10,11 @@ import (
 type HasCDF interface {
 	CDF() float64
 	SetCDF(float64)
-	Weight() int
+	GetWeight() int
+}
+
+type HasDuration interface {
+	GetDuration() *time.Duration
 }
 
 func BackpatchCDF(cdf []HasCDF) {
@@ -17,13 +22,13 @@ func BackpatchCDF(cdf []HasCDF) {
 	// This is the denominator for probability calculations
 	var totalWeight float64
 	for i := 0; i < len(cdf); i++ {
-		totalWeight += float64(cdf[i].Weight())
+		totalWeight += float64(cdf[i].GetWeight())
 	}
 
 	// Now backpatch the cdf values
 	var totalProbability float64
 	for i := 0; i < len(cdf); i++ {
-		totalProbability += float64(float64(cdf[i].Weight()) / float64(totalWeight))
+		totalProbability += float64(float64(cdf[i].GetWeight()) / float64(totalWeight))
 		cdf[i].SetCDF(totalProbability)
 	}
 }

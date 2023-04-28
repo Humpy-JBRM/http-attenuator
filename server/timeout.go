@@ -1,6 +1,7 @@
 package server
 
 import (
+	"http-attenuator/data"
 	"log"
 	"net/http"
 	"time"
@@ -9,14 +10,14 @@ import (
 )
 
 type TimeoutHandler struct {
-	BaseHandler
+	data.BaseHandler
 	timeoutMillis int64
 }
 
-func NewTimeoutHandler(name string, timeoutMillis int64) Handler {
+func NewTimeoutHandler(name string, timeoutMillis int64) data.Handler {
 	return &TimeoutHandler{
-		BaseHandler: BaseHandler{
-			name: name,
+		BaseHandler: data.BaseHandler{
+			Name: name,
 		},
 		timeoutMillis: timeoutMillis,
 	}
@@ -30,11 +31,11 @@ func NewTimeoutHandler(name string, timeoutMillis int64) Handler {
 func (h *TimeoutHandler) Handle(c *gin.Context) {
 	if h.timeoutMillis <= 0 {
 		// Sleep forever.  Never returns
-		log.Printf("%s.Handle(): sleep forever", h.name)
+		log.Printf("%s.Handle(): sleep forever", h.GetName())
 		select {}
 	}
 
-	log.Printf("%s.Handle(): sleep for %dms", h.name, h.timeoutMillis)
+	log.Printf("%s.Handle(): sleep for %dms", h.GetName(), h.timeoutMillis)
 	time.Sleep(time.Duration(h.timeoutMillis))
 
 	// TODO(john): set the response to return in config

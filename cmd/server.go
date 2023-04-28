@@ -3,11 +3,12 @@ package cmd
 import (
 	"http-attenuator/api"
 	"http-attenuator/data"
+	config "http-attenuator/facade/config"
+	"http-attenuator/server"
 	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var serverCmd = &cobra.Command{
@@ -16,15 +17,30 @@ var serverCmd = &cobra.Command{
 	Run:   RunGateway,
 }
 
-var serverAddress string
-
 func init() {
-	serverCmd.PersistentFlags().StringVarP(&serverAddress, "listen", "l", "0.0.0.0:8888", "API listen address (default is 0.0.0.0:8888)")
 }
 
 func RunServer(cmd *cobra.Command, args []string) {
-	if viper.GetString(data.CONF_SERVER_LISTEN) != "" {
-		serverAddress = viper.GetString(data.CONF_SERVER_LISTEN)
+	enabled, err := config.Config().GetBool(data.CONF_SERVER_ENABLE)
+	if err != nil {
+		log.Fatalf("FATAL|cmd.runServer()|Could not start server|%s", err.Error())
+	}
+
+	// Short-circuit if the server is not enabled
+	if !enabled {
+		return
+	}
+
+	// Configure the server for running.
+	//
+	// This takes care of any backpatching, config validation etc.
+	serverBuilder, err := server.NewServerBuilder().FromConfig(appConfig)
+	if err != nil {
+		log.Fatalf("cmd.runServer(): %s", err.Error())
+	}
+	serverInstance, err := serverBuilder.Build()
+	if err != nil {
+		log.Fatalf("cmd.runServer(): %s", err.Error())
 	}
 
 	ginRouter, err := api.NewRouter()
@@ -35,7 +51,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 	// Add the server endpoint
 	serverEndpoints(ginRouter)
 
-	err = ginRouter.Run(serverAddress)
+	err = ginRouter.Run(serverInstance.Listen)
 	if err != nil {
 		log.Printf("FATAL|cmd.runServer()|Could not start server|%s", err.Error())
 	}
@@ -44,8 +60,4 @@ func RunServer(cmd *cobra.Command, args []string) {
 func serverEndpoints(ginRouter *gin.Engine) {
 	ginRouter.NoRoute()
 	panic("TODO(john): spin up the naughty server")
-}
-
-func loadServerConfig(cmd *cobra.Command, args []string) {
-
 }

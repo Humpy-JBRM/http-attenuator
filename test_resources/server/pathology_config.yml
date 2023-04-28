@@ -47,10 +47,16 @@ config:
             # is selected according to the cdf
             body: '{"success": true}'
           401:
+            # a 401 does not have any delay to it - it returns immediately
+            duration: 0s
             weight: 5
           404:
+            # a 404 does not have any delay to it - it returns immediately
+            duration: 0s
             weight: 1
           429:
+            # a 429 does not have any delay to it - it returns immediately
+            duration: 0s
             weight: 5
             # The headers to return when we encounter this code
             headers:
@@ -61,6 +67,13 @@ config:
                 now() + 60s
               ]
           500:
+            # We can override the duration for specific responses, e.g.
+            # if we want them to take longer or shorter
+            #
+            # In this case, a 500 response takes longer (to simulate the
+            # fact that the server tried to do some things at the backend
+            # and things went wrong)
+            duration: normal(2.0, 0.2)
             weight: 9
       # For the timeout pathology, the number of milliseconds to sleep for
       # when handling a request
@@ -81,10 +94,36 @@ config:
           # any response body we want the handler to return when this code
           # is selected according to the cdf
           body: '{"success": true}'
+    # The 'good_boy' profile always returns HTTP 200 with no delay
+    good_boy:
+      # The http code pathology 
+      httpcode:
+        responses:
+          200:
+            headers:
+              # any headers that we want the handler to return when this code
+              # is selected according to the cdf
+              Content-type: [
+                application/json
+              ]
+            # any response body we want the handler to return when this code
+            # is selected according to the cdf
+            body: '{"success": true}'
+  # Here we define our servers.
+  #
+  # They are mapped to particular hostnames (from the Host: header)
+  # and the pathology profile can be selected
+  #
+  # TODO(john): TLS / SNI
   server:
+    enable: true
     name: default
     listen: 0.0.0.0:8888
     hosts:
+      # If there is not Host: match, this is the default
       default:
         pathology: simple
+      goodboy.com:
+        pathology: good_boy
+
 

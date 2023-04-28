@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"http-attenuator/data"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ var rootCmd = &cobra.Command{
 }
 
 var cfgFile string
+var appConfig *data.AppConfig
 
 // Execute executes the root command.
 func Execute() error {
@@ -68,6 +70,11 @@ func LoadConfig(cfgFile string) error {
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("ERROR|cmd.initConfig()|Could not read file %s|%s", viper.ConfigFileUsed(), err.Error())
 	}
+
+	// Load the structured config
+	var err error
+	appConfig, err = data.LoadConfig(viper.ConfigFileUsed())
+	return fmt.Errorf("cmd.LoadConfig(): %s", viper.ConfigFileUsed(), err.Error())
 
 	for _, key := range viper.AllKeys() {
 		log.Printf("%s: %v\n", key, viper.Get(key))

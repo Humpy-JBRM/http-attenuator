@@ -1,12 +1,15 @@
 package server
 
-import "strings"
+import (
+	"http-attenuator/data"
+	"strings"
+)
 
 var handlerRegistry HandlerRegistry
 
 func init() {
 	handlerRegistry = &HandlerRegistryImpl{
-		handlersByName: make(map[string]Handler),
+		handlersByName: make(map[string]data.Handler),
 	}
 }
 
@@ -15,19 +18,19 @@ func GetRegistry() HandlerRegistry {
 }
 
 type HandlerRegistry interface {
-	Register(handler Handler) Handler
-	GetHandler(name string) Handler
+	Register(handler data.Handler) data.Handler
+	GetHandler(name string) data.Handler
 }
 
 type HandlerRegistryImpl struct {
-	handlersByName map[string]Handler
+	handlersByName map[string]data.Handler
 }
 
-func (hr *HandlerRegistryImpl) GetHandler(name string) Handler {
+func (hr *HandlerRegistryImpl) GetHandler(name string) data.Handler {
 	return hr.handlersByName[strings.ToLower(name)]
 }
 
-func (hr *HandlerRegistryImpl) Register(handler Handler) Handler {
+func (hr *HandlerRegistryImpl) Register(handler data.Handler) data.Handler {
 	hr.handlersByName[strings.ToLower(handler.GetName())] = handler
 	return handler
 }

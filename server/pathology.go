@@ -53,14 +53,14 @@ var pathologyResponses = promauto.NewCounterVec(
 
 type FailureMode interface {
 	data.HasCDF
-	Handler
+	data.Handler
 }
 
 type FailureModeImpl struct {
 	name    string
 	weight  int
 	cdf     float64
-	handler Handler
+	handler data.Handler
 }
 
 func (f *FailureModeImpl) GetName() string {
@@ -81,7 +81,7 @@ func (f *FailureModeImpl) SetCDF(cdf float64) {
 	f.cdf = cdf
 }
 
-func (f *FailureModeImpl) Weight() int {
+func (f *FailureModeImpl) GetWeight() int {
 	return f.weight
 }
 
@@ -99,7 +99,7 @@ func (pd *FailureModeDistribution) ChooseFailureMode() FailureMode {
 }
 
 type Pathology interface {
-	Handler
+	data.Handler
 	ChooseFailureMode() FailureMode
 }
 
@@ -306,7 +306,7 @@ func parseHttpCode(pathology *PathologyImpl) error {
 	normalDurationRegex := regexp.MustCompile(`normal\(([0-9]+.[0-9]+), ([0-9]+.[0-9]+)\)`)
 	cdf := make([]data.HasCDF, 0)
 	for httpCode := range httpCodeMap {
-		builder := NewHttpCodeCdfBuilder()
+		builder := data.NewHttpCodeCdfBuilder()
 
 		// Is this a duration entry, rather than a code?
 		//
@@ -387,8 +387,8 @@ func parseHttpCode(pathology *PathologyImpl) error {
 
 	// create the httpCode handler
 	httpCodeHandler := &HttpCodeHandler{
-		BaseHandler: BaseHandler{
-			name: "httpcode",
+		BaseHandler: data.BaseHandler{
+			Name: "httpcode",
 		},
 		cdf: cdf,
 		rng: rand.New(rand.NewSource(time.Now().UnixNano())),

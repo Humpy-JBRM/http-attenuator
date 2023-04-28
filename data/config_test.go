@@ -117,3 +117,17 @@ func TestParseConfigYaml(t *testing.T) {
 		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.Pathology)
 	}
 }
+
+func TestHttpResponseSatisfiesHasCDF(t *testing.T) {
+	var r interface{} = &HttpResponse{}
+	if _, isHasCDF := r.(HasCDF); !isHasCDF {
+		t.Error("HttpResponse does not satisfy HasCDF interface")
+	}
+}
+
+func TestHttpResponseSatisfiesHasDuration(t *testing.T) {
+	var r interface{} = &HttpResponse{}
+	if _, isHasDuration := r.(HasDuration); !isHasDuration {
+		t.Error("HttpResponse does not satisfy HasDuration interface")
+	}
+}

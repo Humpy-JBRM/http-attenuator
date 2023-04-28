@@ -45,7 +45,7 @@ config:
               ]
             # any response body we want the handler to return when this code
             # is selected according to the cdf
-            body: '{"success": true}'
+            body: '{"success": true, "pathology": "simple", "handler": "httpcode"}'
           401:
             # a 401 does not have any delay to it - it returns immediately
             duration: 0s
@@ -93,22 +93,17 @@ config:
             ]
           # any response body we want the handler to return when this code
           # is selected according to the cdf
-          body: '{"success": true}'
+            body: '{"success": true, "pathology": "simple", "handler": "timeout"}'
     # The 'good_boy' profile always returns HTTP 200 with no delay
     good_boy:
-      # The http code pathology 
       httpcode:
         responses:
           200:
             headers:
-              # any headers that we want the handler to return when this code
-              # is selected according to the cdf
               Content-type: [
                 application/json
               ]
-            # any response body we want the handler to return when this code
-            # is selected according to the cdf
-            body: '{"success": true}'
+            body: '{"success": true, "pathology": "good_boy"}'
   # Here we define our servers.
   #
   # They are mapped to particular hostnames (from the Host: header)
@@ -120,7 +115,7 @@ config:
     name: default
     listen: 0.0.0.0:8888
     hosts:
-      # If there is not Host: match, this is the default
+      # If there is no Host: match, this is the default
       default:
         pathology: simple
       goodboy.com:

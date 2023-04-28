@@ -21,6 +21,20 @@ type HttpCodeCdf struct {
 	jsonBody       []byte
 }
 
+// make returnCodeCdf conform to the HasCDF interface
+// so we can use our generic ChooseFromCDF() function
+func (c *HttpCodeCdf) CDF() float64 {
+	return c.cdf
+}
+
+func (c *HttpCodeCdf) SetCDF(cdf float64) {
+	c.cdf = cdf
+}
+
+func (c *HttpCodeCdf) Weight() int {
+	return c.weight
+}
+
 type HttpCodeCdfBuilder interface {
 	Reset() HttpCodeCdfBuilder
 	Code(code int) HttpCodeCdfBuilder
@@ -90,12 +104,6 @@ func (b *HttpCodeCdfBuilderImpl) Body(jsonBytes []byte) HttpCodeCdfBuilder {
 func (b *HttpCodeCdfBuilderImpl) Build() *HttpCodeCdf {
 	defensiveCopy := b.impl
 	return &defensiveCopy
-}
-
-// make returnCodeCdf conform to the HasCDF interface
-// so we can use our generic ChooseFromCDF() function
-func (f *HttpCodeCdf) CDF() float64 {
-	return f.cdf
 }
 
 type HttpCodeHandler struct {

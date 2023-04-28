@@ -18,11 +18,21 @@ config:
         timeout: 10
       # The http code pathology 
       httpcode:
+        # How long requests are to take (in seconds)
+        #
+        # Currently supported:
+        #
+        #   normal(mean, stddev)
+        #   poisson(mean)
+        #
+        # normal(1.0, 0.2) returns values between ~0.2 < value < ~1.6
+        # in a normal distribution and the request will sleep for that
+        # amount of time
+        duration: normal(1.0, 0.2)
         # The HTTP codes to return, and the weight for each return code.
         # The weights do not need to add up to 100, I just made them add
         # up to 100 here so its easy to grok the % of time that code is returned
         "200":
-          duration: normal(1.0, 0.2)
           weight: 80
           headers:
             # any headers that we want the handler to return when this code

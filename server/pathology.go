@@ -58,7 +58,7 @@ type FailureMode interface {
 
 type FailureModeImpl struct {
 	name    string
-	weight  int64
+	weight  int
 	cdf     float64
 	handler Handler
 }
@@ -75,6 +75,14 @@ func (f *FailureModeImpl) Handle(c *gin.Context) {
 // so we can use our generic ChooseFromCDF() function
 func (f *FailureModeImpl) CDF() float64 {
 	return f.cdf
+}
+
+func (f *FailureModeImpl) SetCDF(cdf float64) {
+	f.cdf = cdf
+}
+
+func (f *FailureModeImpl) Weight() int {
+	return f.weight
 }
 
 type FailureModeDistribution struct {
@@ -233,23 +241,14 @@ func parseFailureWeights(pathology *PathologyImpl) error {
 		}
 		failureMode := &FailureModeImpl{
 			name:   failureModeName,
-			weight: weight,
+			weight: int(weight),
 		}
 		pathology.failureModes.failureModes = append(pathology.failureModes.failureModes, failureMode)
 		totalWeight += weight
 	}
 
 	// Calculate the cdf for the failure modes
-	var totalProbability float64
-	for i := 0; i < len(pathology.failureModes.failureModes); i++ {
-		probability := float64(float64(pathology.failureModes.failureModes[i].(*FailureModeImpl).weight) / float64(totalWeight))
-		totalProbability += probability
-		pathology.failureModes.failureModes[i].(*FailureModeImpl).cdf = totalProbability
-	}
-
-	sort.Slice(pathology.failureModes.failureModes, func(i, j int) bool {
-		return pathology.failureModes.failureModes[i].(*FailureModeImpl).name < pathology.failureModes.failureModes[j].(*FailureModeImpl).name
-	})
+	data.BackpatchCDF(pathology.failureModes.failureModes)
 	return nil
 }
 
@@ -304,58 +303,60 @@ func parseHttpCode(pathology *PathologyImpl) error {
 		return fmt.Errorf("parseHttpCode(%s): '%s' has no values", pathology.name, valuesRoot)
 	}
 
-	var totalWeight int64
 	normalDurationRegex := regexp.MustCompile(`normal\(([0-9]+.[0-9]+), ([0-9]+.[0-9]+)\)`)
 	cdf := make([]data.HasCDF, 0)
 	for httpCode := range httpCodeMap {
 		builder := NewHttpCodeCdfBuilder()
+
+		// Is this a duration entry, rather than a code?
+		//
+		// TODO(john): a proper grammar, NOT brittle and janky regex
+		if httpCode == "duration" {
+			duration, err := config.Config().GetString(valuesRoot + "." + httpCode + ".duration")
+			if err != nil {
+				return err
+			}
+			var mean float64
+			var stddev float64
+			if duration != "" {
+				if !normalDurationRegex.MatchString(duration) {
+					return fmt.Errorf("%s: duration '%s' does not match %s", valuesRoot+"."+httpCode, duration, normalDurationRegex)
+				}
+				matches := normalDurationRegex.FindStringSubmatch(duration)
+				if len(matches) != 3 {
+					return fmt.Errorf("%s: duration '%s' does not match %s", valuesRoot+"."+httpCode, duration, normalDurationRegex)
+				}
+				mean, err = strconv.ParseFloat(matches[1], 64)
+				if err != nil {
+					return fmt.Errorf("%s: mean '%s': %s", valuesRoot+"."+httpCode, matches[1], err.Error())
+				}
+				if mean <= 0 {
+					return fmt.Errorf("%s: mean '%s': must be > 0", valuesRoot+"."+httpCode, matches[1])
+				}
+				stddev, err = strconv.ParseFloat(matches[2], 64)
+				if err != nil {
+					return fmt.Errorf("%s: stddev '%s': %s", valuesRoot+"."+httpCode, matches[2], err.Error())
+				}
+				if stddev <= 0 {
+					return fmt.Errorf("%s: stddev '%s': must be > 0", valuesRoot+"."+httpCode, matches[1])
+				}
+				builder.DurationMean(mean)
+				builder.DurationStddev(stddev)
+			}
+			continue
+		}
+
 		numericCode, err := strconv.Atoi(httpCode)
 		if err != nil {
 			return fmt.Errorf("%s: code '%s': %s", valuesRoot+"."+httpCode, httpCode, err.Error())
 		}
 		builder.Code(numericCode)
 
-		// Is there any duration specified?
-		//
-		// TODO(john): a proper grammar, NOT brittle and janky regex
-		duration, err := config.Config().GetString(valuesRoot + "." + httpCode + ".duration")
-		if err != nil {
-			return err
-		}
-		var mean float64
-		var stddev float64
-		if duration != "" {
-			if !normalDurationRegex.MatchString(duration) {
-				return fmt.Errorf("%s: duration '%s' does not match %s", valuesRoot+"."+httpCode, duration, normalDurationRegex)
-			}
-			matches := normalDurationRegex.FindStringSubmatch(duration)
-			if len(matches) != 3 {
-				return fmt.Errorf("%s: duration '%s' does not match %s", valuesRoot+"."+httpCode, duration, normalDurationRegex)
-			}
-			mean, err = strconv.ParseFloat(matches[1], 64)
-			if err != nil {
-				return fmt.Errorf("%s: mean '%s': %s", valuesRoot+"."+httpCode, matches[1], err.Error())
-			}
-			if mean <= 0 {
-				return fmt.Errorf("%s: mean '%s': must be > 0", valuesRoot+"."+httpCode, matches[1])
-			}
-			stddev, err = strconv.ParseFloat(matches[2], 64)
-			if err != nil {
-				return fmt.Errorf("%s: stddev '%s': %s", valuesRoot+"."+httpCode, matches[2], err.Error())
-			}
-			if stddev <= 0 {
-				return fmt.Errorf("%s: stddev '%s': must be > 0", valuesRoot+"."+httpCode, matches[1])
-			}
-			builder.DurationMean(mean)
-			builder.DurationStddev(stddev)
-		}
-
 		weight, err := config.Config().GetInt(valuesRoot + "." + httpCode + ".weight")
 		if err != nil {
 			return err
 		}
 		builder.Weight(int(weight))
-		totalWeight += weight
 
 		// Any headers?
 		headers, err := config.Config().GetValue(valuesRoot + "." + httpCode + ".headers")
@@ -382,14 +383,7 @@ func parseHttpCode(pathology *PathologyImpl) error {
 	}
 
 	// Backpatch the CDF
-	var totalProbability float64
-	for i := 0; i < len(cdf); i++ {
-		totalProbability += float64(float64(cdf[i].(*HttpCodeCdf).weight) / float64(totalWeight))
-		cdf[i].(*HttpCodeCdf).cdf = totalProbability
-	}
-	sort.Slice(cdf, func(i, j int) bool {
-		return cdf[i].(*HttpCodeCdf).cdf < cdf[j].(*HttpCodeCdf).cdf
-	})
+	data.BackpatchCDF(cdf)
 
 	// create the httpCode handler
 	httpCodeHandler := &HttpCodeHandler{
@@ -399,6 +393,9 @@ func parseHttpCode(pathology *PathologyImpl) error {
 		cdf: cdf,
 		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+	sort.Slice(httpCodeHandler.cdf, func(i, j int) bool {
+		return httpCodeHandler.cdf[i].CDF() < httpCodeHandler.cdf[j].CDF()
+	})
 
 	// associate the handler with its failure mode
 	for i := 0; i < len(pathology.failureModes.failureModes); i++ {

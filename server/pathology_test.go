@@ -28,24 +28,8 @@ func TestNewPathologyFromConfig(t *testing.T) {
 		t.Fatalf("Expected 2 pathologies in the distribution, but got %d", len(pathologyCdf))
 	}
 
-	expectedName := "httpcode"
-	actualName := pathologyCdf[0].(*FailureModeImpl).name
-	if expectedName != actualName {
-		t.Errorf("Expected name='%s', but got '%s'", expectedName, actualName)
-	}
-	expectedWeight := int64(90)
-	actualWeight := pathologyCdf[0].(*FailureModeImpl).weight
-	if expectedWeight != actualWeight {
-		t.Errorf("Expected weight='%d', but got '%d'", expectedWeight, actualWeight)
-	}
-	expectedCdf := float64(0.9)
-	actualCdf := pathologyCdf[0].(*FailureModeImpl).cdf
-	if expectedCdf != actualCdf {
-		t.Errorf("Expected cdf='%f', but got '%f'", expectedCdf, actualCdf)
-	}
-
-	// We should have a httpcode FailureMode, with a handler
 	var httpCodeFailureMode *FailureModeImpl
+	// We should have a httpcode FailureMode, with a handler
 	for i := 0; i < len(pathologyCdf); i++ {
 		if pathologyCdf[i].(*FailureModeImpl).name == "httpcode" {
 			httpCodeFailureMode = pathologyCdf[i].(*FailureModeImpl)
@@ -54,6 +38,22 @@ func TestNewPathologyFromConfig(t *testing.T) {
 	}
 	if httpCodeFailureMode == nil {
 		t.Fatal("Expected to find a httpcode failure mode, but did not")
+	}
+
+	expectedName := "httpcode"
+	actualName := httpCodeFailureMode.name
+	if expectedName != actualName {
+		t.Errorf("Expected name='%s', but got '%s'", expectedName, actualName)
+	}
+	expectedWeight := 90
+	actualWeight := httpCodeFailureMode.weight
+	if expectedWeight != actualWeight {
+		t.Errorf("Expected weight='%d', but got '%d'", expectedWeight, actualWeight)
+	}
+	expectedCdf := float64(0.9)
+	actualCdf := httpCodeFailureMode.cdf
+	if expectedCdf != actualCdf {
+		t.Errorf("Expected cdf='%f', but got '%f'", expectedCdf, actualCdf)
 	}
 
 	// This failure mode should have a HttpCodeHandler
@@ -71,23 +71,39 @@ func TestNewPathologyFromConfig(t *testing.T) {
 	}
 
 	// The first one should be for the http 200 code
-	if handler.cdf[0].(*HttpCodeCdf).code != 200 {
-		t.Errorf("Expected first cdf entry to be for code 200, but it is %d", handler.cdf[0].(*HttpCodeCdf).code)
-	}
-	http200CdfEntry := handler.cdf[0].(*HttpCodeCdf)
-	if http200CdfEntry.cdf != 0.8 {
-		t.Errorf("Expected first cdf entry to be for code 200 with cdf = 0.8, but it is %d with cdf = %f", handler.cdf[0].(*HttpCodeCdf).code, http200CdfEntry.cdf)
-	}
-	for _, c := range handler.cdf {
-		t.Errorf("%+v", c)
+	var http200CdfEntry *HttpCodeCdf
+	for i := 0; i < len(handler.cdf); i++ {
+		if handler.cdf[i].(*HttpCodeCdf).code == 200 {
+			http200CdfEntry = handler.cdf[i].(*HttpCodeCdf)
+			break
+		}
 	}
 
+	if http200CdfEntry == nil {
+		t.Errorf("Expected a failure mode for code 200, but got nil")
+	}
+
+	if http200CdfEntry.cdf != 0.8 {
+		t.Errorf("Expected cdf entry to be for code 200 with cdf = 0.8, but it is %d with cdf = %f", handler.cdf[0].(*HttpCodeCdf).code, http200CdfEntry.cdf)
+	}
+
+	var timeoutFailureMode *FailureModeImpl
+	// We should have a httpcode FailureMode, with a handler
+	for i := 0; i < len(pathologyCdf); i++ {
+		if pathologyCdf[i].(*FailureModeImpl).name == "timeout" {
+			timeoutFailureMode = pathologyCdf[i].(*FailureModeImpl)
+			break
+		}
+	}
+	if timeoutFailureMode == nil {
+		t.Fatal("Expected to find a timeout failure mode, but did not")
+	}
 	expectedName = "timeout"
 	actualName = pathologyCdf[1].(*FailureModeImpl).name
 	if expectedName != actualName {
 		t.Errorf("Expected name='%s', but got '%s'", expectedName, actualName)
 	}
-	expectedWeight = int64(10)
+	expectedWeight = 10
 	actualWeight = pathologyCdf[1].(*FailureModeImpl).weight
 	if expectedWeight != actualWeight {
 		t.Errorf("Expected weight='%d', but got '%d'", expectedWeight, actualWeight)

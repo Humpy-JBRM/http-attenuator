@@ -1,5 +1,5 @@
 config:
-  pathology:
+  pathologies:
     # A named pathology profile.
     #
     # This allows us to easily create pathologies which have specific
@@ -16,14 +16,10 @@ config:
     # extend the config API to allow backend servers to be created
     # and configured programatically
     simple:
-      # The failure pathology
-      #
-      #   pathology: weight
-      failure_weights:
-        httpcode: 90
-        timeout: 10
       # The http code pathology 
       httpcode:
+        # Weight of this pathology in the profile
+        weight: 90
         # How long requests are to take (in seconds)
         #
         # Currently supported:
@@ -38,30 +34,57 @@ config:
         # The HTTP codes to return, and the weight for each return code.
         # The weights do not need to add up to 100, I just made them add
         # up to 100 here so its easy to grok the % of time that code is returned
-        "200":
-          weight: 80
+        responses:
+          200:
+            weight: 80
+            headers:
+              # any headers that we want the handler to return when this code
+              # is selected according to the cdf
+              Content-type: [
+                application/json
+              ]
+            # any response body we want the handler to return when this code
+            # is selected according to the cdf
+            body: '{"success": true}'
+          401:
+            weight: 5
+          404:
+            weight: 1
+          429:
+            weight: 5
+            # The headers to return when we encounter this code
+            headers:
+              X-Backoff-Millis: [
+                60000
+              ]
+              X-Retry-After: [
+                now() + 60s
+              ]
+          500:
+            weight: 9
+      # For the timeout pathology, the number of milliseconds to sleep for
+      # when handling a request
+      timeout:
+        # Weight of this pathology in the profile
+        weight: 10
+        # How long to sleep for
+        # TODO(john): humanised values
+        millis: 10000
+        response:
+          code: 200
           headers:
             # any headers that we want the handler to return when this code
             # is selected according to the cdf
-            Content-type: application/json
+            Content-type: [
+              application/json
+            ]
           # any response body we want the handler to return when this code
           # is selected according to the cdf
-          body: {"success": true}
-        "401":
-          weight: 5
-        "404":
-          weight: 1
-        "429":
-          weight: 5
-          # The headers to return when we encounter this code
-          headers:
-            X-Backoff-Millis: 60000
-            X-Retry-After: now() + 60s
-        "500":
-          weight: 9
-      # For the timeout pathology, the number of milliseconds to sleep for
-      # when handling a request
-      timeout_millis: 10000
+          body: '{"success": true}'
   server:
+    name: default
     listen: 0.0.0.0:8888
+    hosts:
+      default:
+        pathology: simple
 

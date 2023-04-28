@@ -1,5 +1,13 @@
 package data
 
+import (
+	"fmt"
+	"net/http"
+	"os"
+
+	"gopkg.in/yaml.v3"
+)
+
 const (
 	CONF_ATTENUATOR_LISTEN        = "config.attenuator.listen"
 	CONF_ATTENUATOR_QUEUESIZE     = "config.attenuator.queue_size"
@@ -18,3 +26,79 @@ const (
 	CONF_REDIS_TIMEOUT            = "config.redis.timeout"
 	CONF_SERVER_LISTEN            = "config.server.listen"
 )
+
+func LoadConfig(configFile string) (*AppConfig, error) {
+	configBytes, err := os.ReadFile(os.Getenv("CONFIG_FILE"))
+	if err != nil {
+		return nil, fmt.Errorf("LoadCOnfig(%s): %s", configFile, err.Error())
+	}
+
+	var appConfig AppConfig
+	err = yaml.Unmarshal(configBytes, &appConfig)
+	if err != nil {
+		return nil, fmt.Errorf("LoadCOnfig(%s): %s", configFile, err.Error())
+	}
+
+	// If we have a httpcode pathology in any of the profiles, then we need
+	// to backpatch the code.
+	//
+	// This is because we reuse the HttpCode in other places and repeating
+	// the 'code: NNN' is redundant when the code is the key to a map.
+	for _, profile := range appConfig.Config.Profiles {
+		if profile.HttpCode != nil {
+			for code, response := range profile.HttpCode.Responses {
+				response.Code = code
+			}
+		}
+	}
+
+	return &appConfig, nil
+}
+
+type AppConfig struct {
+	Config Config `yaml:"config"`
+}
+
+type Config struct {
+	Profiles map[string]PathologyProfile `yaml:"pathologies"`
+	Server   Server                      `yaml:"server"`
+}
+
+type PathologyProfile struct {
+	HttpCode *HttpCodePathology `yaml:"httpcode"`
+	Timeout  *TimeoutPathology  `yaml:"timeout"`
+}
+
+type HttpCodePathology struct {
+	Weight    int                  `yaml:"weight"`
+	Duration  string               `yaml:"duration"`
+	Responses map[int]HttpResponse `yaml:"responses"`
+}
+
+type HttpResponse struct {
+	// This needs to be backpatched in the case of a httpcode,
+	// because it lives in a map
+	Code     int         `yaml:"code"`
+	Weight   int         `yaml:"weight"`
+	Duration string      `yaml:"duration"`
+	Headers  http.Header `yaml:"headers"`
+	Body     string      `yaml:"body"`
+}
+
+type TimeoutPathology struct {
+	Millis   int64         `yaml:"millis"`
+	Weight   int           `yaml:"weight"`
+	Response *HttpResponse `yaml:"response"`
+}
+
+type Server struct {
+	Name   string `yaml:"name"`
+	Listen string `yaml:"listen"`
+
+	// Mapping of host header value -> implementation
+	Hosts map[string]ServerHost
+}
+
+type ServerHost struct {
+	Pathology string `yaml:"pathology"`
+}

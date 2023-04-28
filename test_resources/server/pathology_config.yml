@@ -1,10 +1,16 @@
 config:
   pathology:
-    # Pathologies have names.
+    # A named pathology profile.
     #
     # This allows us to easily create pathologies which have specific
     # behaviour and then just refer to them by name in a particular
     # server config.
+    #
+    # e.g.
+    #
+    # server:
+    #   host: *.foo.com
+    #   pathology: random_404
     #
     # This ability will become even more imortant / useful as we
     # extend the config API to allow backend servers to be created

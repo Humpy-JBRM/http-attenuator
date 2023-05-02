@@ -50,7 +50,11 @@ func (d *DurationConfig) GetDuration() *time.Duration {
 		return &duration
 
 	case Normal:
-		duration := time.Duration(d.millis * int64(time.Millisecond))
+		durationSeconds := rand.NormFloat64()*d.stddev + d.mean
+		if durationSeconds <= 0 {
+			return nil
+		}
+		duration := time.Duration(int64(durationSeconds*1000)) * time.Millisecond
 		return &duration
 	}
 

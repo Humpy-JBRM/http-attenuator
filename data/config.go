@@ -47,18 +47,29 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	//
 	// This is because we reuse the HttpCode in other places and repeating
 	// the 'code: NNN' is redundant when the code is the key to a map.
-	for _, profile := range appConfig.Config.PathologyProfiles {
-		if profile.HttpCode != nil {
-			for code, response := range profile.HttpCode.Responses {
+	for _, profile := range appConfig.Config.Pathologies {
+		for name, pathology := range profile {
+			// backpatch the name
+			pathology.name = name
+			for code, response := range pathology.Responses {
 				// backpatch the http code
 				response.Code = code
 
 				// backpatch the duration
-				// durationAsTime, err := parseDuration(response.Duration)
-				// if err != nil {
-				// 	return nil, fmt.Errorf("LoadConfig(%s): httpcode.%d: %s", configFile, code, err.Error())
-				// }
-				// response.durationAsTime = durationAsTime
+				duration := "0ms"
+				if response.Duration == "" {
+					// Inherit from parent
+					if pathology.Duration != "" {
+						duration = pathology.Duration
+					}
+				} else {
+					duration = response.Duration
+				}
+				durationAsTime, err := ParseDuration(duration)
+				if err != nil {
+					return nil, fmt.Errorf("LoadConfig(%s): httpcode.%d: %s", configFile, code, err.Error())
+				}
+				response.durationConfig = durationAsTime
 			}
 		}
 	}
@@ -71,28 +82,37 @@ type AppConfig struct {
 }
 
 type Config struct {
-	PathologyProfiles map[string]PathologyProfile `yaml:"pathologies"`
-	Server            Server                      `yaml:"server"`
+	Pathologies map[string]PathologyProfile `yaml:"pathologies"`
+	Server      Server                      `yaml:"server"`
 }
 
-type PathologyProfile struct {
-	HttpCode *HttpCodePathology `yaml:"httpcode"`
-	Timeout  *TimeoutPathology  `yaml:"timeout"`
-}
+type PathologyProfile map[string]*PathologyImpl
 
-type HttpCodePathology struct {
-	Weight    int                  `yaml:"weight"`
-	Duration  string               `yaml:"duration"`
-	Responses map[int]HttpResponse `yaml:"responses"`
+type PathologyImpl struct {
+	Weight    int                   `yaml:"weight"`
+	Duration  string                `yaml:"duration"`
+	Responses map[int]*HttpResponse `yaml:"responses"`
 
 	// These get backpatched in server.FromConfig()
+	name              string
 	rng               *rand.Rand
 	responsesAsHasCDF []HasCDF
 }
 
+func (p *PathologyImpl) GetName() string {
+	return p.name
+}
+
 // SelectResponse selects the HttpResponse to be returned
 // based on the cdf
-func (p *HttpCodePathology) SelectResponse() *HttpResponse {
+func (p *PathologyImpl) SelectResponse() *HttpResponse {
+	if len(p.Responses) == 0 {
+		return nil
+	}
+	for _, resp := range p.Responses {
+		return resp
+	}
+
 	if p.responsesAsHasCDF == nil {
 		return nil
 	}

@@ -20,12 +20,12 @@ func TestParseConfigYaml(t *testing.T) {
 	// We should have a pathology profile called 'simple'
 	exists := false
 	var simplePathologyProfile PathologyProfile
-	if simplePathologyProfile, exists = appConfig.Config.PathologyProfiles["simple"]; !exists {
+	if simplePathologyProfile, exists = appConfig.Config.Pathologies["simple"]; !exists {
 		t.Fatal("No 'simple' pathology profile")
 	}
 
 	// This simple pathology should have a httpcode pathology and a timeout pathology
-	httpcodePathology := simplePathologyProfile.HttpCode
+	httpcodePathology := simplePathologyProfile["httpcode"]
 	if httpcodePathology == nil {
 		t.Fatal("Profile'simple' does not have the expected 'httpcode' pathology")
 	}
@@ -39,7 +39,7 @@ func TestParseConfigYaml(t *testing.T) {
 	expectedHeaders := http.Header{
 		"Content-type": []string{"application/json"},
 	}
-	expectedBody := `{"success": true}`
+	expectedBody := `{"success": true, "pathology": "simple", "handler": "httpcode"}`
 	actualWeight := httpcodePathology.Responses[200].Weight
 	actualHeaders := httpcodePathology.Responses[200].Headers
 	actualBody := httpcodePathology.Responses[200].Body
@@ -54,7 +54,7 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 
 	// timeout pathology
-	timeoutPathology := simplePathologyProfile.Timeout
+	timeoutPathology := simplePathologyProfile["timeout"]
 	if timeoutPathology == nil {
 		t.Fatal("Profile'simple' does not have the expected 'timeout' pathology")
 	}
@@ -65,10 +65,11 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 
 	// The timeout duration
-	expectedMillis := int64(10000)
-	actualMillis := timeoutPathology.Millis
-	if expectedMillis != actualMillis {
-		t.Errorf("timeout: expected weight=%d, got %d", expectedMillis, actualMillis)
+	expectedMillisLo := int64(100)
+	expectedMillisHi := int64(2000)
+	actualMillis := timeoutPathology.SelectResponse().GetDuration().Milliseconds()
+	if actualMillis < expectedMillisLo || actualMillis > expectedMillisHi {
+		t.Errorf("timeout: expected %d < duration < %d, got %d", expectedMillisLo, expectedMillisHi, actualMillis)
 	}
 
 	// The timeout response
@@ -76,10 +77,10 @@ func TestParseConfigYaml(t *testing.T) {
 	expectedHeaders = http.Header{
 		"Content-type": []string{"application/json"},
 	}
-	expectedBody = `{"success": true}`
-	actualCode := timeoutPathology.Response.Code
-	actualHeaders = timeoutPathology.Response.Headers
-	actualBody = timeoutPathology.Response.Body
+	expectedBody = `{"success": true, "pathology": "simple", "handler": "timeout"}`
+	actualCode := timeoutPathology.SelectResponse().Code
+	actualHeaders = timeoutPathology.SelectResponse().Headers
+	actualBody = timeoutPathology.SelectResponse().Body
 	if expectedCode != actualCode {
 		t.Errorf("timeout: expected code=%d, got %d", expectedCode, actualCode)
 	}

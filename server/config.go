@@ -15,7 +15,7 @@ func NewServerBuilder() ServerBuilder {
 	return &ServerBuilderImpl{}
 }
 
-// FromConfig populates
+// FromConfig populates the pathology registry
 func (b *ServerBuilderImpl) FromConfig(appConfig *data.AppConfig) (ServerBuilder, error) {
 	b.impl = appConfig.Config.Server
 

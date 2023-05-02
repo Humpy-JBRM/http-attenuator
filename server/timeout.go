@@ -14,7 +14,7 @@ type TimeoutHandler struct {
 	timeoutMillis int64
 }
 
-func NewTimeoutHandler(name string, timeoutMillis int64) data.Handler {
+func NewTimeoutHandler(name string, timeoutMillis int64) Handler {
 	return &TimeoutHandler{
 		BaseHandler: data.BaseHandler{
 			Name: name,

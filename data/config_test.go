@@ -20,7 +20,7 @@ func TestParseConfigYaml(t *testing.T) {
 	// We should have a pathology profile called 'simple'
 	exists := false
 	var simplePathologyProfile PathologyProfile
-	if simplePathologyProfile, exists = appConfig.Config.Profiles["simple"]; !exists {
+	if simplePathologyProfile, exists = appConfig.Config.PathologyProfiles["simple"]; !exists {
 		t.Fatal("No 'simple' pathology profile")
 	}
 

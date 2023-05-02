@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -19,7 +20,7 @@ const (
 	CONF_GATEWAY_RECORD           = "config.gateway.record"
 	CONF_GATEWAY_RECORD_REQUESTS  = "config.gateway.record.requests"
 	CONF_GATEWAY_RECORD_RESPONSES = "config.gateway.record.responses"
-	CONF_PATHOLOGY                = "config.pathology"
+	CONF_PATHOLOGIES              = "config.pathologies"
 	CONF_PROXY_ENABLE             = "config.proxy.enable"
 	CONF_PROXY_LISTEN             = "config.proxy.listen"
 	CONF_REDIS_HOST               = "config.redis.host"
@@ -46,7 +47,7 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	//
 	// This is because we reuse the HttpCode in other places and repeating
 	// the 'code: NNN' is redundant when the code is the key to a map.
-	for _, profile := range appConfig.Config.Profiles {
+	for _, profile := range appConfig.Config.PathologyProfiles {
 		if profile.HttpCode != nil {
 			for code, response := range profile.HttpCode.Responses {
 				// backpatch the http code
@@ -70,8 +71,8 @@ type AppConfig struct {
 }
 
 type Config struct {
-	Profiles map[string]PathologyProfile `yaml:"pathologies"`
-	Server   Server                      `yaml:"server"`
+	PathologyProfiles map[string]PathologyProfile `yaml:"pathologies"`
+	Server            Server                      `yaml:"server"`
 }
 
 type PathologyProfile struct {
@@ -83,10 +84,19 @@ type HttpCodePathology struct {
 	Weight    int                  `yaml:"weight"`
 	Duration  string               `yaml:"duration"`
 	Responses map[int]HttpResponse `yaml:"responses"`
+
+	// These get backpatched in server.FromConfig()
+	rng               *rand.Rand
+	responsesAsHasCDF []HasCDF
 }
 
+// SelectResponse selects the HttpResponse to be returned
+// based on the cdf
 func (p *HttpCodePathology) SelectResponse() *HttpResponse {
-	return nil
+	if p.responsesAsHasCDF == nil {
+		return nil
+	}
+	return ChooseFromCDF(p.rng.Float64(), p.responsesAsHasCDF).(*HttpResponse)
 }
 
 type HttpResponse struct {

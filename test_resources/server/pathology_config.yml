@@ -80,19 +80,20 @@ config:
       timeout:
         # Weight of this pathology in the profile
         weight: 10
-        # How long to sleep for
-        # TODO(john): humanised values
-        millis: 10000
-        response:
-          code: 200
-          headers:
-            # any headers that we want the handler to return when this code
+        # normal(1.0, 0.2) returns values between ~0.2 < value < ~1.6
+        # in a normal distribution and the request will sleep for that
+        # amount of time
+        duration: normal(1.0, 0.2)
+        responses:
+          200:
+            headers:
+              # any headers that we want the handler to return when this code
+              # is selected according to the cdf
+              Content-type: [
+                application/json
+              ]
+            # any response body we want the handler to return when this code
             # is selected according to the cdf
-            Content-type: [
-              application/json
-            ]
-          # any response body we want the handler to return when this code
-          # is selected according to the cdf
             body: '{"success": true, "pathology": "simple", "handler": "timeout"}'
     # The 'good_boy' profile always returns HTTP 200 with no delay
     good_boy:

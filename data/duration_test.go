@@ -7,7 +7,7 @@ import (
 
 func TestParseDurationConstantHappy(t *testing.T) {
 	durationAsString := "5000ms"
-	dc, err := parseDuration(durationAsString)
+	dc, err := ParseDuration(durationAsString)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestParseDurationConstantHappy(t *testing.T) {
 
 func TestParseDurationConstantNegativeValue(t *testing.T) {
 	durationAsString := "-5000ms"
-	_, err := parseDuration(durationAsString)
+	_, err := ParseDuration(durationAsString)
 	if err == nil {
 		t.Fatal("Expected an error because of -ve duration")
 	}
@@ -40,7 +40,7 @@ func almostEqual(a, b float64) bool {
 
 func TestParseDurationNormalHappy(t *testing.T) {
 	durationAsString := "normal(10.0, 1.0)"
-	dc, err := parseDuration(durationAsString)
+	dc, err := ParseDuration(durationAsString)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestParseDurationNormalHappy(t *testing.T) {
 
 func TestParseDurationUniformHappy(t *testing.T) {
 	durationAsString := "uniform(5s)"
-	dc, err := parseDuration(durationAsString)
+	dc, err := ParseDuration(durationAsString)
 	if err != nil {
 		t.Fatal(err)
 	}

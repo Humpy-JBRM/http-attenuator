@@ -72,7 +72,7 @@ var reUniform = regexp.MustCompile(`^uniform\((?P<Max>[0-9]+)(?P<Units>[a-z]+)\)
 // normal(10.0, 1.0)		mean and stdev are IN SECONDS
 var reNormal = regexp.MustCompile(`^normal\((?P<Mean>[0-9]+.[0-9]+), (?P<Stddev>[0-9]+.[0-9]+)\)$`)
 
-func parseDuration(durationAsStringX string) (HasDuration, error) {
+func ParseDuration(durationAsStringX string) (HasDuration, error) {
 	trimmed := strings.TrimSpace(durationAsStringX)
 	// Try constant value first
 	if reConstant.MatchString(trimmed) {

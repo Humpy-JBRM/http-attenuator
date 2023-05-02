@@ -2,11 +2,13 @@ package data
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 )
 
@@ -47,11 +49,18 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	//
 	// This is because we reuse the HttpCode in other places and repeating
 	// the 'code: NNN' is redundant when the code is the key to a map.
-	for _, profile := range appConfig.Config.Pathologies {
+	for profileName, profile := range appConfig.Config.Pathologies {
+		totalProfileWeight := 0
 		for name, pathology := range profile {
-			// backpatch the name
+			totalProfileWeight += pathology.Weight
+
+			// backpatch the name and the profile this pathology belongs to
 			pathology.name = name
+			pathology.profile = profileName
+			totalWeight := 0
 			for code, response := range pathology.Responses {
+				totalWeight += response.Weight
+
 				// backpatch the http code
 				response.Code = code
 
@@ -71,6 +80,22 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 				}
 				response.durationConfig = durationAsTime
 			}
+
+			// Backpatch the cdf for the various responses
+			for _, response := range pathology.Responses {
+				if len(pathology.Responses) == 1 {
+					response.cdf = float64(1)
+					continue
+				}
+
+				response.cdf = float64(response.Weight) / float64(totalWeight)
+			}
+		}
+		// Backpatch the cdf for the various pathologies in the profile
+		for _, profile := range appConfig.Config.Pathologies {
+			for _, pathology := range profile {
+				pathology.SetCDF(float64(pathology.Weight) / float64(totalProfileWeight))
+			}
 		}
 	}
 
@@ -88,19 +113,44 @@ type Config struct {
 
 type PathologyProfile map[string]*PathologyImpl
 
+func (pp PathologyProfile) GetPathology(name string) Pathology {
+	return pp[name]
+}
+
 type PathologyImpl struct {
 	Weight    int                   `yaml:"weight"`
 	Duration  string                `yaml:"duration"`
 	Responses map[int]*HttpResponse `yaml:"responses"`
 
-	// These get backpatched in server.FromConfig()
+	// The CDF when this pathology is part of a profile
+	cdf float64
+
+	// These get backpatched in LoadConfig()
 	name              string
+	profile           string
 	rng               *rand.Rand
 	responsesAsHasCDF []HasCDF
 }
 
 func (p *PathologyImpl) GetName() string {
 	return p.name
+}
+
+func (p *PathologyImpl) GetProfile() string {
+	return p.profile
+}
+
+// PathologyImpl must conform to Pathology (HasCDF) duck-type
+func (p *PathologyImpl) CDF() float64 {
+	return p.cdf
+}
+
+func (p *PathologyImpl) SetCDF(cdf float64) {
+	p.cdf = cdf
+}
+
+func (p *PathologyImpl) GetWeight() int {
+	return p.Weight
 }
 
 // SelectResponse selects the HttpResponse to be returned
@@ -117,6 +167,29 @@ func (p *PathologyImpl) SelectResponse() *HttpResponse {
 		return nil
 	}
 	return ChooseFromCDF(p.rng.Float64(), p.responsesAsHasCDF).(*HttpResponse)
+}
+
+// Satisfy the Handler duck type
+func (p *PathologyImpl) Handle(c *gin.Context) {
+	pathologyRequests.WithLabelValues(p.profile, p.name, c.Request.Method).Inc()
+	resp := p.SelectResponse()
+	if resp == nil {
+		log.Printf("%s.Handle(%s): no response configured", p.name, c.Request.URL.String())
+		return
+	}
+
+	// Response code
+	c.Status(resp.Code)
+
+	// Headers
+	for headerName, values := range resp.Headers {
+		for _, value := range values {
+			c.Writer.Header().Add(headerName, value)
+		}
+	}
+
+	// Response body
+	c.Writer.Write([]byte(resp.Body))
 }
 
 type HttpResponse struct {
@@ -179,5 +252,5 @@ type Server struct {
 }
 
 type ServerHost struct {
-	Pathology string `yaml:"pathology"`
+	PathologyName string `yaml:"pathology"`
 }

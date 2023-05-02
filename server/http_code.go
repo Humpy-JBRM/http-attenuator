@@ -11,30 +11,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type HttpCodePathology struct {
+type PathologyImpl struct {
 	BasePathology
 	responses []*HttpCodeResponse
 	cdf       []data.HasCDF
 	rng       *rand.Rand
 }
 
-type HttpCodePathologyBuilder struct {
+type PathologyBuilder struct {
 	BasePathologyBuilder
-	hp HttpCodePathology
+	hp PathologyImpl
 }
 
-func NewHttpCodePathologyBuilder() *HttpCodePathologyBuilder {
+func NewPathologyBuilder() *PathologyBuilder {
 	bpb := NewBasePathologyBuilder()
-	return &HttpCodePathologyBuilder{
+	return &PathologyBuilder{
 		BasePathologyBuilder: *bpb,
-		hp: HttpCodePathology{
+		hp: PathologyImpl{
 			rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 			responses: make([]*HttpCodeResponse, 0),
 		},
 	}
 }
 
-func (b *HttpCodePathologyBuilder) Build() (*HttpCodePathology, error) {
+func (b *PathologyBuilder) Build() (Pathology, error) {
 	// Populate the CDF
 	result := b.hp
 	baseBuilder := &b.BasePathologyBuilder
@@ -45,7 +45,7 @@ func (b *HttpCodePathologyBuilder) Build() (*HttpCodePathology, error) {
 
 // HttpCodeHandler returns a variety of status codes according
 // to the cdf
-func (h *HttpCodePathology) Handle(c *gin.Context) {
+func (h *PathologyImpl) Handle(c *gin.Context) {
 	// get the pathology - this is just for logging / monitoring
 	pathologyRequests.WithLabelValues(h.profile, h.GetName(), c.Request.Method).Inc()
 	choice := data.ChooseFromCDF(h.rng.Float64(), h.cdf)

@@ -2,6 +2,7 @@ package data
 
 import (
 	config "http-attenuator/facade/config"
+	"http-attenuator/util"
 	"net/http"
 	"os"
 	"reflect"
@@ -24,10 +25,21 @@ func TestParseConfigYaml(t *testing.T) {
 		t.Fatal("No 'simple' pathology profile")
 	}
 
+	// Check that this pathology is registered.
+	// If it is not, then it cannot be backpatched into the server
+	//GetRegistry().GetPathology("simple")
+
 	// This simple pathology should have a httpcode pathology and a timeout pathology
 	httpcodePathology := simplePathologyProfile["httpcode"]
 	if httpcodePathology == nil {
 		t.Fatal("Profile'simple' does not have the expected 'httpcode' pathology")
+	}
+
+	// The httpcode pathology should have a weight of 0.9 in the 'simple' profile
+	expectedWeight := 90
+	actualWeight := httpcodePathology.Weight
+	if expectedWeight != actualWeight {
+		t.Errorf("httpcode: expected weight=%d, got %d", expectedWeight, actualWeight)
 	}
 
 	// httpcode should have five responses
@@ -36,22 +48,37 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 
 	// HTTP 200
-	expectedWeight := 80
+	expectedName := "httpcode"
+	expectedProfile := "simple"
+	expectedWeight = 80
 	expectedHeaders := http.Header{
 		"Content-type": []string{"application/json"},
 	}
 	expectedBody := `{"success": true, "pathology": "simple", "handler": "httpcode"}`
-	actualWeight := httpcodePathology.Responses[200].Weight
+	expectedCdf := 0.8
+	actualWeight = httpcodePathology.Responses[200].Weight
 	actualHeaders := httpcodePathology.Responses[200].Headers
 	actualBody := httpcodePathology.Responses[200].Body
-	if expectedWeight != actualWeight {
-		t.Errorf("httpcode.200: expected weight=%d, got %d", expectedWeight, actualWeight)
+	actualCdf := httpcodePathology.Responses[200].CDF()
+	actualName := httpcodePathology.GetName()
+	actualProfile := httpcodePathology.GetProfile()
+	if !util.AlmostEqual(expectedCdf, actualCdf) {
+		t.Errorf("httpcode.200: expected cdf=%f, got %f", expectedCdf, actualCdf)
 	}
 	if expectedBody != actualBody {
 		t.Errorf("httpcode.200: expected body='%s', got '%s'", expectedBody, actualBody)
 	}
 	if !reflect.DeepEqual(expectedHeaders, actualHeaders) {
 		t.Errorf("httpcode.200: expected headers='%v', got '%v'", expectedHeaders, actualHeaders)
+	}
+	if expectedWeight != actualWeight {
+		t.Errorf("httpcode.200: expected weight=%d, got %d", expectedWeight, actualWeight)
+	}
+	if expectedName != actualName {
+		t.Errorf("httpcode.200: expected name=%s, got %s", expectedName, actualName)
+	}
+	if expectedProfile != actualProfile {
+		t.Errorf("httpcode.200: expected profile=%s, got %s", expectedProfile, actualProfile)
 	}
 
 	// HTTP 429
@@ -61,9 +88,14 @@ func TestParseConfigYaml(t *testing.T) {
 		"X-Retry-After":    []string{"now() + 60s"},
 	}
 	expectedBody = ""
+	expectedCdf = 0.05
 	actualWeight = httpcodePathology.Responses[429].Weight
 	actualHeaders = httpcodePathology.Responses[429].Headers
 	actualBody = httpcodePathology.Responses[429].Body
+	actualCdf = httpcodePathology.Responses[429].CDF()
+	if !util.AlmostEqual(expectedCdf, actualCdf) {
+		t.Errorf("httpcode.429: expected cdf=%f, got %f", expectedCdf, actualCdf)
+	}
 	if expectedWeight != actualWeight {
 		t.Errorf("httpcode.429: expected weight=%d, got %d", expectedWeight, actualWeight)
 	}
@@ -99,9 +131,19 @@ func TestParseConfigYaml(t *testing.T) {
 		"Content-type": []string{"application/json"},
 	}
 	expectedBody = `{"success": true, "pathology": "simple", "handler": "timeout"}`
+	expectedName = "timeout"
+	expectedProfile = "simple"
+	// weight is not specified in the config
+	expectedWeight = 0
+	// single response means that cdf is 1
+	expectedCdf = 1.0
 	actualCode := timeoutPathology.SelectResponse().Code
 	actualHeaders = timeoutPathology.SelectResponse().Headers
 	actualBody = timeoutPathology.SelectResponse().Body
+	actualName = timeoutPathology.GetName()
+	actualProfile = timeoutPathology.GetProfile()
+	actualWeight = timeoutPathology.SelectResponse().GetWeight()
+	actualCdf = timeoutPathology.SelectResponse().CDF()
 	if expectedCode != actualCode {
 		t.Errorf("timeout: expected code=%d, got %d", expectedCode, actualCode)
 	}
@@ -110,6 +152,18 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 	if !reflect.DeepEqual(expectedHeaders, actualHeaders) {
 		t.Errorf("timeout: expected headers='%v', got '%v'", expectedHeaders, actualHeaders)
+	}
+	if expectedName != actualName {
+		t.Errorf("timeout: expected name=%s, got %s", expectedName, actualName)
+	}
+	if expectedProfile != actualProfile {
+		t.Errorf("timeout: expected profile=%s, got %s", expectedProfile, actualProfile)
+	}
+	if expectedWeight != actualWeight {
+		t.Errorf("timeout.200: expected weight=%d, got %d", expectedWeight, actualWeight)
+	}
+	if expectedCdf != actualCdf {
+		t.Errorf("timeout.200: expected cdf=%f, got %f", expectedCdf, actualCdf)
 	}
 
 	// Check the server config
@@ -129,15 +183,17 @@ func TestParseConfigYaml(t *testing.T) {
 	hostname := "default"
 	expectedPathology := "simple"
 	host := appConfig.Config.Server.Hosts[hostname]
-	if host.Pathology != expectedPathology {
-		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.Pathology)
+	if host.PathologyName != expectedPathology {
+		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.PathologyName)
 	}
 	hostname = "goodboy.com"
 	expectedPathology = "good_boy"
 	host = appConfig.Config.Server.Hosts[hostname]
-	if host.Pathology != expectedPathology {
-		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.Pathology)
+	if host.PathologyName != expectedPathology {
+		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.PathologyName)
 	}
+
+	//
 }
 
 func TestHttpResponseSatisfiesHasCDF(t *testing.T) {

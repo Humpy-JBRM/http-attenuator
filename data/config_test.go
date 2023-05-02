@@ -35,6 +35,7 @@ func TestParseConfigYaml(t *testing.T) {
 		t.Errorf("Expected 5 responses in httpcode pathology, but got %d", len(httpcodePathology.Responses))
 	}
 
+	// HTTP 200
 	expectedWeight := 80
 	expectedHeaders := http.Header{
 		"Content-type": []string{"application/json"},
@@ -51,6 +52,26 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 	if !reflect.DeepEqual(expectedHeaders, actualHeaders) {
 		t.Errorf("httpcode.200: expected headers='%v', got '%v'", expectedHeaders, actualHeaders)
+	}
+
+	// HTTP 429
+	expectedWeight = 5
+	expectedHeaders = http.Header{
+		"X-Backoff-Millis": []string{"60000"},
+		"X-Retry-After":    []string{"now() + 60s"},
+	}
+	expectedBody = ""
+	actualWeight = httpcodePathology.Responses[429].Weight
+	actualHeaders = httpcodePathology.Responses[429].Headers
+	actualBody = httpcodePathology.Responses[429].Body
+	if expectedWeight != actualWeight {
+		t.Errorf("httpcode.429: expected weight=%d, got %d", expectedWeight, actualWeight)
+	}
+	if expectedBody != actualBody {
+		t.Errorf("httpcode.429: expected body='%s', got '%s'", expectedBody, actualBody)
+	}
+	if !reflect.DeepEqual(expectedHeaders, actualHeaders) {
+		t.Errorf("httpcode.429: expected headers='%v', got '%v'", expectedHeaders, actualHeaders)
 	}
 
 	// timeout pathology

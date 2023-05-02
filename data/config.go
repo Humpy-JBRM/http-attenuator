@@ -38,7 +38,11 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 		return nil, fmt.Errorf("LoadCOnfig(%s): %s", configFile, err.Error())
 	}
 
-	var appConfig AppConfig
+	appConfig := AppConfig{
+		Config: Config{
+			pathologyProfiles: make(map[string]*PathologyProfile),
+		},
+	}
 	err = yaml.Unmarshal(configBytes, &appConfig)
 	if err != nil {
 		return nil, fmt.Errorf("LoadConfig(%s): %s", configFile, err.Error())
@@ -49,7 +53,10 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	//
 	// This is because we reuse the HttpCode in other places and repeating
 	// the 'code: NNN' is redundant when the code is the key to a map.
-	for profileName, profile := range appConfig.Config.Pathologies {
+	for profileName, profile := range appConfig.Config.PathologiesFromConfig {
+		appConfig.Config.pathologyProfiles[profileName] = &PathologyProfile{
+			PathologyProfileFromConfig: profile,
+		}
 		totalProfileWeight := 0
 		for name, pathology := range profile {
 			totalProfileWeight += pathology.Weight
@@ -92,7 +99,7 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 			}
 		}
 		// Backpatch the cdf for the various pathologies in the profile
-		for _, profile := range appConfig.Config.Pathologies {
+		for _, profile := range appConfig.Config.PathologiesFromConfig {
 			for _, pathology := range profile {
 				pathology.SetCDF(float64(pathology.Weight) / float64(totalProfileWeight))
 			}
@@ -107,14 +114,25 @@ type AppConfig struct {
 }
 
 type Config struct {
-	Pathologies map[string]PathologyProfile `yaml:"pathologies"`
-	Server      Server                      `yaml:"server"`
+	PathologiesFromConfig map[string]PathologyProfileFromConfig `yaml:"pathologies"`
+	Server                Server                                `yaml:"server"`
+
+	// These are backpatched
+	pathologyProfiles map[string]*PathologyProfile
 }
 
-type PathologyProfile map[string]*PathologyImpl
+func (c *Config) GetProfile(name string) *PathologyProfile {
+	return c.pathologyProfiles[name]
+}
+
+type PathologyProfileFromConfig map[string]*PathologyImpl
+
+type PathologyProfile struct {
+	PathologyProfileFromConfig
+}
 
 func (pp PathologyProfile) GetPathology(name string) Pathology {
-	return pp[name]
+	return pp.PathologyProfileFromConfig[name]
 }
 
 type PathologyImpl struct {

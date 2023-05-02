@@ -19,32 +19,28 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 
 	// We should have a pathology profile called 'simple'
-	exists := false
-	var simplePathologyProfile PathologyProfile
-	if simplePathologyProfile, exists = appConfig.Config.Pathologies["simple"]; !exists {
-		t.Fatal("No 'simple' pathology profile")
-	}
+	simplePathologyProfile := appConfig.Config.GetProfile("simple")
 
 	// Check that this pathology is registered.
 	// If it is not, then it cannot be backpatched into the server
 	//GetRegistry().GetPathology("simple")
 
 	// This simple pathology should have a httpcode pathology and a timeout pathology
-	httpcodePathology := simplePathologyProfile["httpcode"]
+	httpcodePathology := simplePathologyProfile.GetPathology("httpcode")
 	if httpcodePathology == nil {
 		t.Fatal("Profile'simple' does not have the expected 'httpcode' pathology")
 	}
 
 	// The httpcode pathology should have a weight of 0.9 in the 'simple' profile
 	expectedWeight := 90
-	actualWeight := httpcodePathology.Weight
+	actualWeight := httpcodePathology.GetWeight()
 	if expectedWeight != actualWeight {
 		t.Errorf("httpcode: expected weight=%d, got %d", expectedWeight, actualWeight)
 	}
 
 	// httpcode should have five responses
-	if len(httpcodePathology.Responses) != 5 {
-		t.Errorf("Expected 5 responses in httpcode pathology, but got %d", len(httpcodePathology.Responses))
+	if len(httpcodePathology.(*PathologyImpl).Responses) != 5 {
+		t.Errorf("Expected 5 responses in httpcode pathology, but got %d", len(httpcodePathology.(*PathologyImpl).Responses))
 	}
 
 	// HTTP 200
@@ -56,10 +52,10 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 	expectedBody := `{"success": true, "pathology": "simple", "handler": "httpcode"}`
 	expectedCdf := 0.8
-	actualWeight = httpcodePathology.Responses[200].Weight
-	actualHeaders := httpcodePathology.Responses[200].Headers
-	actualBody := httpcodePathology.Responses[200].Body
-	actualCdf := httpcodePathology.Responses[200].CDF()
+	actualWeight = httpcodePathology.(*PathologyImpl).Responses[200].Weight
+	actualHeaders := httpcodePathology.(*PathologyImpl).Responses[200].Headers
+	actualBody := httpcodePathology.(*PathologyImpl).Responses[200].Body
+	actualCdf := httpcodePathology.(*PathologyImpl).Responses[200].CDF()
 	actualName := httpcodePathology.GetName()
 	actualProfile := httpcodePathology.GetProfile()
 	if !util.AlmostEqual(expectedCdf, actualCdf) {
@@ -89,10 +85,10 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 	expectedBody = ""
 	expectedCdf = 0.05
-	actualWeight = httpcodePathology.Responses[429].Weight
-	actualHeaders = httpcodePathology.Responses[429].Headers
-	actualBody = httpcodePathology.Responses[429].Body
-	actualCdf = httpcodePathology.Responses[429].CDF()
+	actualWeight = httpcodePathology.(*PathologyImpl).Responses[429].Weight
+	actualHeaders = httpcodePathology.(*PathologyImpl).Responses[429].Headers
+	actualBody = httpcodePathology.(*PathologyImpl).Responses[429].Body
+	actualCdf = httpcodePathology.(*PathologyImpl).Responses[429].CDF()
 	if !util.AlmostEqual(expectedCdf, actualCdf) {
 		t.Errorf("httpcode.429: expected cdf=%f, got %f", expectedCdf, actualCdf)
 	}
@@ -107,12 +103,12 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 
 	// timeout pathology
-	timeoutPathology := simplePathologyProfile["timeout"]
+	timeoutPathology := simplePathologyProfile.GetPathology("timeout")
 	if timeoutPathology == nil {
 		t.Fatal("Profile'simple' does not have the expected 'timeout' pathology")
 	}
 	expectedWeight = 10
-	actualWeight = timeoutPathology.Weight
+	actualWeight = timeoutPathology.GetWeight()
 	if expectedWeight != actualWeight {
 		t.Errorf("timeout: expected weight=%d, got %d", expectedWeight, actualWeight)
 	}

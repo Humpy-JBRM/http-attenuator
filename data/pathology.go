@@ -12,6 +12,6 @@ type Handler interface {
 type Pathology interface {
 	Handler
 	HasCDF
-	GetProfile() string
+	GetProfileName() string
 	SelectResponse() *HttpResponse
 }

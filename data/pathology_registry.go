@@ -4,46 +4,41 @@ import (
 	"strings"
 )
 
-var pathologyRegistry PathologyRegistry
+var profileRegistry ProfileRegistry
 
 func init() {
-	pathologyRegistry = newRegistry()
-}
-
-func newRegistry() PathologyRegistry {
-	return &PathologyRegistryImpl{
-		pathologiesByName: make(map[string]Pathology),
+	profileRegistry = &ProfileRegistryImpl{
+		pathologiesByName: make(map[string]*PathologyProfileImpl),
 	}
 }
 
-func GetRegistry() PathologyRegistry {
-	return pathologyRegistry
+func GetProfileRegistry() ProfileRegistry {
+	return profileRegistry
 }
 
-type PathologyRegistry interface {
-	Register(pathology Pathology) Pathology
-	GetPathology(name string) Pathology
+type ProfileRegistry interface {
+	Register(profile *PathologyProfileImpl)
+	GetPathologyProfile(name string) *PathologyProfileImpl
 }
 
-type PathologyRegistryImpl struct {
-	pathologiesByName map[string]Pathology
+type ProfileRegistryImpl struct {
+	pathologiesByName map[string]*PathologyProfileImpl
 }
 
-func (hr *PathologyRegistryImpl) GetPathology(name string) Pathology {
+func (hr *ProfileRegistryImpl) GetPathologyProfile(name string) *PathologyProfileImpl {
 	return hr.pathologiesByName[strings.ToLower(name)]
 }
 
-func (hr *PathologyRegistryImpl) Register(pathology Pathology) Pathology {
-	hr.pathologiesByName[strings.ToLower(pathology.GetName())] = pathology
-	return pathology
+func (hr *ProfileRegistryImpl) Register(profile *PathologyProfileImpl) {
+	hr.pathologiesByName[strings.ToLower(profile.GetName())] = profile
 }
 
-// LoadRegistryFromConfig populates the pathology registry singleton
+// LoadRegistryFromConfig populates the profile registry singleton
 // from the provided config
 func LoadRegistryFromConfig(appConfig *AppConfig) error {
 	// Instantiate the registry
-	pathologyRegistry = &PathologyRegistryImpl{
-		pathologiesByName: make(map[string]Pathology),
+	profileRegistry = &ProfileRegistryImpl{
+		pathologiesByName: make(map[string]*PathologyProfileImpl),
 	}
 
 	// Parse and validate the config

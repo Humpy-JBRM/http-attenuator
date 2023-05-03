@@ -1,12 +1,15 @@
 package data
 
 import (
+	"encoding/json"
 	config "http-attenuator/facade/config"
 	"http-attenuator/util"
 	"net/http"
 	"os"
 	"reflect"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestParseConfigYaml(t *testing.T) {
@@ -57,7 +60,7 @@ func TestParseConfigYaml(t *testing.T) {
 	actualBody := httpcodePathology.(*PathologyImpl).Responses[200].Body
 	actualCdf := httpcodePathology.(*PathologyImpl).Responses[200].CDF()
 	actualName := httpcodePathology.GetName()
-	actualProfile := httpcodePathology.GetProfile()
+	actualProfile := httpcodePathology.GetProfileName()
 	if !util.AlmostEqual(expectedCdf, actualCdf) {
 		t.Errorf("httpcode.200: expected cdf=%f, got %f", expectedCdf, actualCdf)
 	}
@@ -137,7 +140,7 @@ func TestParseConfigYaml(t *testing.T) {
 	actualHeaders = timeoutPathology.SelectResponse().Headers
 	actualBody = timeoutPathology.SelectResponse().Body
 	actualName = timeoutPathology.GetName()
-	actualProfile = timeoutPathology.GetProfile()
+	actualProfile = timeoutPathology.GetProfileName()
 	actualWeight = timeoutPathology.SelectResponse().GetWeight()
 	actualCdf = timeoutPathology.SelectResponse().CDF()
 	if expectedCode != actualCode {
@@ -179,17 +182,33 @@ func TestParseConfigYaml(t *testing.T) {
 	hostname := "default"
 	expectedPathology := "simple"
 	host := appConfig.Config.Server.Hosts[hostname]
-	if host.PathologyName != expectedPathology {
-		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.PathologyName)
+	if host.PathologyProfileName != expectedPathology {
+		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.PathologyProfileName)
 	}
 	hostname = "goodboy.com"
 	expectedPathology = "good_boy"
 	host = appConfig.Config.Server.Hosts[hostname]
-	if host.PathologyName != expectedPathology {
-		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.PathologyName)
+	if host.PathologyProfileName != expectedPathology {
+		t.Errorf("Expected server host '%s' to have pathology '%s', but it has '%s'", hostname, expectedPathology, host.PathologyProfileName)
 	}
 
-	//
+	// the pathology profiles should have been registered
+	profileName := "good_boy"
+	if GetProfileRegistry().GetPathologyProfile(profileName) == nil {
+		t.Errorf("Expected pathology profile '%s' to be registered but it was not", profileName)
+	}
+	profileName = "simple"
+	if GetProfileRegistry().GetPathologyProfile(profileName) == nil {
+		t.Errorf("Expected pathology profile '%s' to be registered but it was not", profileName)
+	}
+
+	configBytes, _ := yaml.Marshal(appConfig)
+	os.WriteFile("config.yml", configBytes, 0644)
+	configBytes, err = json.MarshalIndent(appConfig, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile("config.json", configBytes, 0644)
 }
 
 func TestHttpResponseSatisfiesHasCDF(t *testing.T) {

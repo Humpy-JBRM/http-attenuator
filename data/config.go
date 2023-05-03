@@ -40,7 +40,7 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 
 	appConfig := AppConfig{
 		Config: Config{
-			pathologyProfiles: make(map[string]*PathologyProfile),
+			pathologyProfiles: make(map[string]*PathologyProfileImpl),
 		},
 	}
 	err = yaml.Unmarshal(configBytes, &appConfig)
@@ -48,15 +48,12 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 		return nil, fmt.Errorf("LoadConfig(%s): %s", configFile, err.Error())
 	}
 
-	// If we have a httpcode pathology in any of the profiles, then we need
-	// to backpatch the code.
-	//
-	// This is because we reuse the HttpCode in other places and repeating
-	// the 'code: NNN' is redundant when the code is the key to a map.
 	for profileName, profile := range appConfig.Config.PathologiesFromConfig {
-		appConfig.Config.pathologyProfiles[profileName] = &PathologyProfile{
+		profileInstance := &PathologyProfileImpl{
 			PathologyProfileFromConfig: profile,
+			pathologyCdf:               make([]HasCDF, 0),
 		}
+		appConfig.Config.pathologyProfiles[profileName] = profileInstance
 		totalProfileWeight := 0
 		for name, pathology := range profile {
 			totalProfileWeight += pathology.Weight
@@ -106,39 +103,63 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 		}
 	}
 
+	// Make sure the pathology profiles are registered
+	for name, profile := range appConfig.Config.pathologyProfiles {
+		// backpatch the name
+		profile.name = name
+		GetProfileRegistry().Register(profile)
+	}
+
+	// Backpatch the servers with the actual pathology profile instance
+	// to be used
+	for _, serverHost := range appConfig.Config.Server.Hosts {
+		serverHost.pathologyProfile = GetProfileRegistry().GetPathologyProfile(serverHost.PathologyProfileName)
+	}
 	return &appConfig, nil
 }
 
 type AppConfig struct {
-	Config Config `yaml:"config"`
+	Config Config `yaml:"config" json:"config"`
 }
 
 type Config struct {
-	PathologiesFromConfig map[string]PathologyProfileFromConfig `yaml:"pathologies"`
-	Server                Server                                `yaml:"server"`
+	PathologiesFromConfig map[string]PathologyProfileFromConfig `yaml:"pathologies" json:"pathologies"`
+	Server                Server                                `yaml:"server" json:"server"`
 
 	// These are backpatched
-	pathologyProfiles map[string]*PathologyProfile
+	pathologyProfiles map[string]*PathologyProfileImpl
 }
 
-func (c *Config) GetProfile(name string) *PathologyProfile {
+func (c *Config) GetProfile(name string) *PathologyProfileImpl {
 	return c.pathologyProfiles[name]
 }
 
 type PathologyProfileFromConfig map[string]*PathologyImpl
 
-type PathologyProfile struct {
-	PathologyProfileFromConfig
+type PathologyProfile interface {
+	Handler
 }
 
-func (pp PathologyProfile) GetPathology(name string) Pathology {
+type PathologyProfileImpl struct {
+	name string
+	PathologyProfileFromConfig
+
+	// The pathologies in this profile as a CDF
+	pathologyCdf []HasCDF
+}
+
+func (pp *PathologyProfileImpl) GetName() string {
+	return pp.name
+}
+
+func (pp *PathologyProfileImpl) GetPathology(name string) Pathology {
 	return pp.PathologyProfileFromConfig[name]
 }
 
 type PathologyImpl struct {
-	Weight    int                   `yaml:"weight"`
-	Duration  string                `yaml:"duration"`
-	Responses map[int]*HttpResponse `yaml:"responses"`
+	Weight    int                   `yaml:"weight" json:"weight"`
+	Duration  string                `yaml:"duration" json:"duration"`
+	Responses map[int]*HttpResponse `yaml:"responses" json:"responses"`
 
 	// The CDF when this pathology is part of a profile
 	cdf float64
@@ -154,7 +175,7 @@ func (p *PathologyImpl) GetName() string {
 	return p.name
 }
 
-func (p *PathologyImpl) GetProfile() string {
+func (p *PathologyImpl) GetProfileName() string {
 	return p.profile
 }
 
@@ -213,11 +234,11 @@ func (p *PathologyImpl) Handle(c *gin.Context) {
 type HttpResponse struct {
 	// This needs to be backpatched in the case of a httpcode,
 	// because it lives in a map
-	Code     int         `yaml:"code"`
-	Weight   int         `yaml:"weight"`
-	Duration string      `yaml:"duration"`
-	Headers  http.Header `yaml:"headers"`
-	Body     string      `yaml:"body"`
+	Code     int         `yaml:"code" json:"code"`
+	Weight   int         `yaml:"weight" json:"weight"`
+	Duration string      `yaml:"duration" json:"duration"`
+	Headers  http.Header `yaml:"headers" json:"headers"`
+	Body     string      `yaml:"body" json:"body"`
 
 	// this needs to be backpatched because it is derived
 	// from the config value (which could be a formula)
@@ -255,20 +276,27 @@ func (r *HttpResponse) GetWeight() int {
 }
 
 type TimeoutPathology struct {
-	Millis   int64         `yaml:"millis"`
-	Weight   int           `yaml:"weight"`
-	Response *HttpResponse `yaml:"response"`
+	Millis   int64         `yaml:"millis" json:"millis"`
+	Weight   int           `yaml:"weight" json:"weight"`
+	Response *HttpResponse `yaml:"response" json:"response"`
 }
 
 type Server struct {
-	Name   string `yaml:"name"`
-	Listen string `yaml:"listen"`
-	Enable bool   `yaml:"enable"`
+	Name   string `yaml:"name" json:"name"`
+	Listen string `yaml:"listen" json:"listen"`
+	Enable bool   `yaml:"enable" json:"enable"`
 
 	// Mapping of host header value -> implementation
-	Hosts map[string]ServerHost
+	Hosts map[string]*ServerHost
 }
 
 type ServerHost struct {
-	PathologyName string `yaml:"pathology"`
+	PathologyProfileName string `yaml:"pathology" json:"pathology"`
+
+	// The actual pathology profile instance gets backpatched
+	pathologyProfile *PathologyProfileImpl
+}
+
+func (s *ServerHost) GetPathologyProfile() *PathologyProfileImpl {
+	return s.pathologyProfile
 }

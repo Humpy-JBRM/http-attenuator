@@ -13,8 +13,8 @@ import (
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "Runs the server to simulate the various failure modes",
-	Run:   RunGateway,
+	Short: "Runs the FaultMonkey server to simulate the various failure modes",
+	Run:   RunServer,
 }
 
 func init() {
@@ -23,11 +23,12 @@ func init() {
 func RunServer(cmd *cobra.Command, args []string) {
 	enabled, err := config.Config().GetBool(data.CONF_SERVER_ENABLE)
 	if err != nil {
-		log.Fatalf("FATAL|cmd.runServer()|Could not start server|%s", err.Error())
+		log.Fatalf("cmd.runServer(): Could not start server|%s", err.Error())
 	}
 
 	// Short-circuit if the server is not enabled
 	if !enabled {
+		log.Printf("cmd.runServer(): Server is not enabled|%s", err.Error())
 		return
 	}
 
@@ -59,5 +60,5 @@ func RunServer(cmd *cobra.Command, args []string) {
 
 func serverEndpoints(ginRouter *gin.Engine, serverInstance *data.Server) {
 	faultMonkey := server.NewFaultMonkey(serverInstance)
-	ginRouter.NoRoute(faultMonkey.Handle)
+	ginRouter.Use(faultMonkey.Handle)
 }

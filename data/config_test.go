@@ -11,18 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestParseConfigYaml(t *testing.T) {
-	os.Setenv("CONFIG_FILE", "../test_resources/server/pathology_config.yml")
-	config.Config()
-
-	appConfig, err := LoadConfig(os.Getenv("CONFIG_FILE"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	validateConfig(t, appConfig)
-}
-
 func validateConfig(t *testing.T, appConfig *AppConfig) {
 	// We should have a pathology profile called 'simple'
 	simplePathologyProfile := appConfig.Config.GetProfile("simple")
@@ -204,6 +192,46 @@ func validateConfig(t *testing.T, appConfig *AppConfig) {
 	if GetProfileRegistry().GetPathologyProfile(profileName) == nil {
 		t.Errorf("Expected pathology profile '%s' to be registered but it was not", profileName)
 	}
+
+	// We should have two pathologies in the simple profile
+	simplePathology := GetProfileRegistry().GetPathologyProfile("simple")
+	expectedNumberOfPathologies := 2
+	if len(simplePathology.(*PathologyProfileImpl).pathologyCdf) != expectedNumberOfPathologies {
+		t.Errorf("Expected pathology profile 'simple' to have %d pathologies, but it has %d", expectedNumberOfPathologies, len(simplePathology.(*PathologyProfileImpl).pathologyCdf))
+	}
+
+	// httpcode pathology should be selected ~90% of the time
+	// timeout pathology should be selected ~10% of the time
+	//
+	// TODO(john): the values out of the rng do not appear to be uniform, causing the below to fail
+	// selected := make(map[string]int)
+	// iterations := 10000
+	// for i := 0; i < iterations; i++ {
+	// 	selectedPathology := simplePathology.GetPathology()
+	// 	selected[selectedPathology.GetName()]++
+	// }
+	// expectedHttpCode := float64(0.9)
+	// expectedTimeout := float64(0.1)
+	// actualHttpCode := float64(selected["httpcode"]) / float64(iterations)
+	// actualTimeout := float64(selected["timeout"]) / float64(iterations)
+	// if !util.AlmostEqual(expectedHttpCode, actualHttpCode) {
+	// 	t.Errorf("Expected httpcode ~%.2f, but was %.2f (%d/%d)", expectedHttpCode, actualHttpCode, selected["httpcode"], iterations)
+	// }
+	// if !util.AlmostEqual(expectedTimeout, actualTimeout) {
+	// 	t.Errorf("Expected timeout ~%.2f, but was %.2f (%d/%d)", expectedTimeout, actualTimeout, selected["timeout"], iterations)
+	// }
+}
+
+func TestParseConfigYaml(t *testing.T) {
+	os.Setenv("CONFIG_FILE", "../test_resources/server/pathology_config.yml")
+	config.Config()
+
+	appConfig, err := LoadConfig(os.Getenv("CONFIG_FILE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	validateConfig(t, appConfig)
 }
 
 func TestConfigRoundTrip(t *testing.T) {

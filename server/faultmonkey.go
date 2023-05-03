@@ -1,9 +1,7 @@
 package server
 
 import (
-	"fmt"
 	"http-attenuator/data"
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +13,7 @@ type ServerImpl struct {
 
 type FaultMonkey interface {
 	data.Handler
-	ShouldHandle(c *gin.Context) bool
+	ShouldHandle(c *gin.Context) (bool, *data.ServerHost)
 }
 
 func NewFaultMonkey(server *data.Server) FaultMonkey {
@@ -31,18 +29,28 @@ func (s *ServerImpl) GetName() string {
 // ShouldHandle is used by proxy / gateway / broker mode
 // to determine whether or not the request is the be handled
 // by faultmonkey
-func (s *ServerImpl) ShouldHandle(c *gin.Context) bool {
-	return false
+//
+// TODO(john): a simple rules language around host selection would be nice
+func (s *ServerImpl) ShouldHandle(c *gin.Context) (bool, *data.ServerHost) {
+	// Check for a Host: header match
+	serverHost, hasHostMapping := s.server.Hosts[strings.ToLower(c.Request.Host)]
+	if !hasHostMapping {
+		// Check for the default mapping
+		serverHost, hasHostMapping = s.server.Hosts["default"]
+	}
+	return hasHostMapping, serverHost
 }
 
 // a ServerImpl is-a Handler
+//
+// This is executed as part of gin middleware, so it intercepts the
+// various gateway/broker requsts
+//
+// TODO(john): allow the gateway/broker requests to have intermittent failures
 func (s *ServerImpl) Handle(c *gin.Context) {
-	// Find the matching host
-	// TODO(john): some nice around host selection would be nice
-	serverHost := s.server.Hosts[strings.ToLower(c.Request.Host)]
-	if serverHost == nil {
-		err := fmt.Errorf("server.Handle(%s): no host configured for '%s'", c.Request.URL, c.Request.Host)
-		c.AbortWithError(http.StatusNotFound, err)
+	shouldHandle, serverHost := s.ShouldHandle(c)
+	if !shouldHandle {
+		// Not something that FaultMonkey is to deal with
 		return
 	}
 

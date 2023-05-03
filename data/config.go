@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"sort"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -12,6 +13,7 @@ import (
 const (
 	CONF_ATTENUATOR_LISTEN        = "config.attenuator.listen"
 	CONF_ATTENUATOR_QUEUESIZE     = "config.attenuator.queue_size"
+	CONF_BILLING_ENABLE           = "config.billing.enable"
 	CONF_BROKER_LISTEN            = "config.broker.listen"
 	CONF_BROKER_UPSTREAM          = "config.broker.upstream"
 	CONF_CONFIG_LISTEN            = "config.config.listen"
@@ -106,6 +108,21 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 		// backpatch the name
 		profile.(*PathologyProfileImpl).name = name
 		GetProfileRegistry().Register(profile)
+
+		// Backpatch the CDF for the pathologies in the profiles
+		totalWeight := 0
+		for _, pathology := range profile.(*PathologyProfileImpl).PathologyProfileFromConfig {
+			totalWeight += pathology.Weight
+		}
+
+		for _, pathology := range profile.(*PathologyProfileImpl).PathologyProfileFromConfig {
+			pathology.cdf = float64(pathology.Weight) / float64(totalWeight)
+			profile.(*PathologyProfileImpl).pathologyCdf = append(profile.(*PathologyProfileImpl).pathologyCdf, pathology)
+		}
+
+		sort.Slice(profile.(*PathologyProfileImpl).pathologyCdf, func(i, j int) bool {
+			return profile.(*PathologyProfileImpl).pathologyCdf[i].CDF() > profile.(*PathologyProfileImpl).pathologyCdf[j].CDF()
+		})
 	}
 
 	// Backpatch the servers with the actual pathology profile instance

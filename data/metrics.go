@@ -11,7 +11,7 @@ var pathologyRequests = promauto.NewCounterVec(
 		Name:      "pathology_requests",
 		Help:      "The requests handled by the various pathologies, keyed by name, handler and method",
 	},
-	[]string{"pathology", "handler", "method"},
+	[]string{"profile", "pathology", "host", "method", "code"},
 )
 var pathologyErrors = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -19,7 +19,7 @@ var pathologyErrors = promauto.NewCounterVec(
 		Name:      "pathology_errors",
 		Help:      "The requests handled by the various pathologies, keyed by name, handler and method",
 	},
-	[]string{"pathology", "handler", "method"},
+	[]string{"profile", "pathology", "host", "method", "code"},
 )
 var pathologyLatency = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -27,7 +27,7 @@ var pathologyLatency = promauto.NewCounterVec(
 		Name:      "pathology_latency",
 		Help:      "The latency of the various pathologies, keyed by name, handler and method",
 	},
-	[]string{"pathology", "handler", "method"},
+	[]string{"profile", "pathology", "host", "method", "code"},
 )
 var pathologyResponses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -35,5 +35,5 @@ var pathologyResponses = promauto.NewCounterVec(
 		Name:      "pathology_responses",
 		Help:      "The responses from the various pathologies, keyed by name, method and status code",
 	},
-	[]string{"pathology", "handler", "method", "code"},
+	[]string{"profile", "pathology", "host", "method", "code"},
 )

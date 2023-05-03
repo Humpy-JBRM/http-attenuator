@@ -26,5 +26,5 @@ func (b *ServerBuilderImpl) FromConfig(appConfig *data.AppConfig) (ServerBuilder
 }
 
 func (b *ServerBuilderImpl) Build() (*data.Server, error) {
-	panic("IMPLEMENT ME")
+	return &b.impl, nil
 }

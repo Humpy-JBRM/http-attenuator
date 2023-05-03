@@ -36,6 +36,7 @@ func (pp *PathologyProfileImpl) GetPathologyByName(name string) Pathology {
 func (pp *PathologyProfileImpl) GetPathology() Pathology {
 	pathology := ChooseFromCDF(pp.rng.Float64(), pp.pathologyCdf)
 	if pathology == nil {
+		return nil
 	}
 	return pathology.(Pathology)
 }
@@ -46,6 +47,7 @@ func (pp *PathologyProfileImpl) Handle(c *gin.Context) {
 	if pathology == nil {
 		err := fmt.Errorf("")
 		c.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
 
 	// Defer to the chosen pathology

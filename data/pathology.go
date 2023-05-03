@@ -1,8 +1,11 @@
 package data
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -73,11 +76,48 @@ func (p *PathologyImpl) SelectResponse() *HttpResponse {
 
 // Satisfy the Handler duck type
 func (p *PathologyImpl) Handle(c *gin.Context) {
-	pathologyRequests.WithLabelValues(p.profile, p.name, c.Request.Method).Inc()
 	resp := p.SelectResponse()
+	pathologyRequests.WithLabelValues(
+		p.profile,                       // profile
+		p.name,                          // pathology
+		strings.ToLower(c.Request.Host), //host
+		c.Request.Method,                // method
+		fmt.Sprint(resp.Code),           // code
+	).Inc()
+
+	now := time.Now().UTC().UnixMilli()
+	defer func(now int64) {
+		pathologyLatency.WithLabelValues(
+			p.profile,                       // profile
+			p.name,                          // pathology
+			strings.ToLower(c.Request.Host), //host
+			c.Request.Method,                // method
+			fmt.Sprint(resp.Code),           // code
+		).Add(float64(time.Now().UTC().UnixMilli() - now))
+		pathologyResponses.WithLabelValues(
+			p.profile,                       // profile
+			p.name,                          // pathology
+			strings.ToLower(c.Request.Host), //host
+			c.Request.Method,                // method
+			fmt.Sprint(resp.Code),           // code
+		).Inc()
+	}(now)
+
 	if resp == nil {
 		log.Printf("%s.Handle(%s): no response configured", p.name, c.Request.URL.String())
+		pathologyErrors.WithLabelValues(
+			p.profile,                       // profile
+			p.name,                          // pathology
+			strings.ToLower(c.Request.Host), //host
+			c.Request.Method,                // method
+			"",                              // code
+		).Inc()
 		return
+	}
+
+	// delay for the configured amount of time
+	if resp.GetDuration() != nil && resp.GetDuration().Milliseconds() > 0 {
+		time.Sleep(*resp.GetDuration())
 	}
 
 	// Response code

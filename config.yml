@@ -165,51 +165,127 @@ config:
     # idle timeout in millis
     timeout: 5000
   # Server pathology
-  pathology:
-    # Pathologies have names.
+  pathologies:
+    # A named pathology profile.
     #
     # This allows us to easily create pathologies which have specific
     # behaviour and then just refer to them by name in a particular
     # server config.
     #
+    # e.g.
+    #
+    # server:
+    #   host: *.foo.com
+    #   pathology: random_404
+    #
     # This ability will become even more imortant / useful as we
     # extend the config API to allow backend servers to be created
     # and configured programatically
     simple:
-      # The weighted failure pathology
-      #
-      #   pathology: weight
-      #
-      # this creates a CDF so we select the failure according to
-      # the weighting of the failures
-      failure_weights:
-        httpcode: 90
-        timeout: 10
       # The http code pathology 
       httpcode:
+        # Weight of this pathology in the profile
+        weight: 90
+        # How long requests are to take (in seconds)
+        #
+        # Currently supported:
+        #
+        #   normal(mean, stddev)
+        #   poisson(mean)
+        #
+        # normal(1.0, 0.2) returns values between ~0.2 < value < ~1.6
+        # in a normal distribution and the request will sleep for that
+        # amount of time
+        duration: normal(1.0, 0.2)
         # The HTTP codes to return, and the weight for each return code.
         # The weights do not need to add up to 100, I just made them add
         # up to 100 here so its easy to grok the % of time that code is returned
-        "200":
-          weight: 80
-          headers:
-            Content-type: application/json
-          body: {"success": true}
-        "401":
-          weight: 5
-        "404":
-          weight: 1
-        "429":
-          weight: 5
-          # The headers to return when we encounter this code
-          headers:
-            X-Backoff-Millis: 60000
-            X-Retry-After: now() + 60s
-        "500":
-          weight: 9
+        responses:
+          200:
+            weight: 80
+            headers:
+              # any headers that we want the handler to return when this code
+              # is selected according to the cdf
+              Content-type: [
+                application/json
+              ]
+            # any response body we want the handler to return when this code
+            # is selected according to the cdf
+            body: '{"success": true, "pathology": "simple", "handler": "httpcode"}'
+          401:
+            # a 401 does not have any delay to it - it returns immediately
+            duration: 0s
+            weight: 5
+          404:
+            # a 404 does not have any delay to it - it returns immediately
+            duration: 0s
+            weight: 1
+          429:
+            # a 429 does not have any delay to it - it returns immediately
+            duration: 0s
+            weight: 5
+            # The headers to return when we encounter this code
+            headers:
+              X-Backoff-Millis: [
+                60000
+              ]
+              X-Retry-After: [
+                now() + 60s
+              ]
+          500:
+            # We can override the duration for specific responses, e.g.
+            # if we want them to take longer or shorter
+            #
+            # In this case, a 500 response takes longer (to simulate the
+            # fact that the server tried to do some things at the backend
+            # and things went wrong)
+            duration: normal(2.0, 0.2)
+            weight: 9
       # For the timeout pathology, the number of milliseconds to sleep for
       # when handling a request
-      timeout_millis: 10000
+      timeout:
+        # Weight of this pathology in the profile
+        weight: 10
+        # normal(1.0, 0.2) returns values between ~0.2 < value < ~1.6
+        # in a normal distribution and the request will sleep for that
+        # amount of time
+        duration: normal(1.0, 0.2)
+        responses:
+          200:
+            headers:
+              # any headers that we want the handler to return when this code
+              # is selected according to the cdf
+              Content-type: [
+                application/json
+              ]
+            # any response body we want the handler to return when this code
+            # is selected according to the cdf
+            body: '{"success": true, "pathology": "simple", "handler": "timeout"}'
+    # The 'good_boy' profile always returns HTTP 200 with no delay
+    good_boy:
+      httpcode:
+        responses:
+          200:
+            headers:
+              Content-type: [
+                application/json
+              ]
+            body: '{"success": true, "pathology": "good_boy"}'
+  # Here we define our servers.
+  #
+  # They are mapped to particular hostnames (from the Host: header)
+  # and the pathology profile can be selected
+  #
+  # TODO(john): TLS / SNI
   server:
+    enable: true
+    name: default
     listen: 0.0.0.0:8888
+    hosts:
+      # If there is no Host: match, this is the default
+      default:
+        pathology: simple
+      goodboy.com:
+        pathology: good_boy
+
 

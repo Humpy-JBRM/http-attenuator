@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"http-attenuator/data"
+	config "http-attenuator/facade/config"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,7 @@ var hsakRequests = promauto.NewCounterVec(
 		Name:      "hsak_requests",
 		Help:      "The number of requests to HSAK, keyed by customer API key",
 	},
-	[]string{"tag", "customer", "endpoint", "method", "code"},
+	[]string{"tag", "customer", "host", "endpoint", "method", "code"},
 )
 
 // This is a contrived bunch of data, used only for the purposes
@@ -42,10 +43,16 @@ func BillingMiddleware() gin.HandlerFunc {
 			hsakRequests.WithLabelValues(
 				c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 				customer,
+				c.Request.Host,
 				c.Request.URL.Path,
 				c.Request.Method,
 				"",
 			).Inc()
+
+			if billingEnabled, _ := config.Config().GetBool(data.CONF_BILLING_ENABLE); !billingEnabled {
+				return
+			}
+
 			if c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_API_KEY) == "" {
 				c.AbortWithError(
 					http.StatusPaymentRequired,

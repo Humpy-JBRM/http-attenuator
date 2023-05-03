@@ -21,3 +21,5 @@
 go.work
 
 .*.swp
+__debug_bin
+

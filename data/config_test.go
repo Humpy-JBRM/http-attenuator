@@ -1,7 +1,6 @@
 package data
 
 import (
-	"encoding/json"
 	config "http-attenuator/facade/config"
 	"http-attenuator/util"
 	"net/http"
@@ -21,6 +20,10 @@ func TestParseConfigYaml(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	validateConfig(t, appConfig)
+}
+
+func validateConfig(t *testing.T, appConfig *AppConfig) {
 	// We should have a pathology profile called 'simple'
 	simplePathologyProfile := appConfig.Config.GetProfile("simple")
 
@@ -29,7 +32,7 @@ func TestParseConfigYaml(t *testing.T) {
 	//GetRegistry().GetPathology("simple")
 
 	// This simple pathology should have a httpcode pathology and a timeout pathology
-	httpcodePathology := simplePathologyProfile.GetPathology("httpcode")
+	httpcodePathology := simplePathologyProfile.GetPathologyByName("httpcode")
 	if httpcodePathology == nil {
 		t.Fatal("Profile'simple' does not have the expected 'httpcode' pathology")
 	}
@@ -106,7 +109,7 @@ func TestParseConfigYaml(t *testing.T) {
 	}
 
 	// timeout pathology
-	timeoutPathology := simplePathologyProfile.GetPathology("timeout")
+	timeoutPathology := simplePathologyProfile.GetPathologyByName("timeout")
 	if timeoutPathology == nil {
 		t.Fatal("Profile'simple' does not have the expected 'timeout' pathology")
 	}
@@ -201,14 +204,38 @@ func TestParseConfigYaml(t *testing.T) {
 	if GetProfileRegistry().GetPathologyProfile(profileName) == nil {
 		t.Errorf("Expected pathology profile '%s' to be registered but it was not", profileName)
 	}
+}
 
-	configBytes, _ := yaml.Marshal(appConfig)
-	os.WriteFile("config.yml", configBytes, 0644)
-	configBytes, err = json.MarshalIndent(appConfig, "", "  ")
+func TestConfigRoundTrip(t *testing.T) {
+	os.Setenv("CONFIG_FILE", "../test_resources/server/pathology_config.yml")
+	config.Config()
+
+	appConfig, err := LoadConfig(os.Getenv("CONFIG_FILE"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	os.WriteFile("config.json", configBytes, 0644)
+
+	// Write config to a temp file
+	f, err := os.CreateTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		f.Close()
+		os.Remove(f.Name())
+	}()
+	configBytes, _ := yaml.Marshal(appConfig)
+	f.Write(configBytes)
+
+	// Read the config in from this file
+	// This is the round-trip
+	appConfig, err = LoadConfig(os.Getenv("CONFIG_FILE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Validate the config
+	validateConfig(t, appConfig)
 }
 
 func TestHttpResponseSatisfiesHasCDF(t *testing.T) {

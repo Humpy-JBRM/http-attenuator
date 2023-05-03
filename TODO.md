@@ -39,7 +39,9 @@ Using the config API to change behaviour in real time
     - connection refused
 
 ## Notes
-I'm starting to think that there are (at least) seven separate use cases for this:
+This is a labour of love, something I've wanted to build for a long time, and I'm building it anyway because it will really really help me with the various limitations I encounter when trying to scrape content and exceed the limits they put in place to stop me (e.g. companies house, or the classic cars site I did for Charlie)
+
+I'm starting to think that there are (at least) seven separate use cases for commercialising this:
 
     - enapsulating all retry / failure logic behind a sing;e interface
 

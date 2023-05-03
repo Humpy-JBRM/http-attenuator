@@ -49,7 +49,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 	}
 
 	// Add the server endpoint
-	serverEndpoints(ginRouter)
+	serverEndpoints(ginRouter, serverInstance)
 
 	err = ginRouter.Run(serverInstance.Listen)
 	if err != nil {
@@ -57,7 +57,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 	}
 }
 
-func serverEndpoints(ginRouter *gin.Engine) {
-	ginRouter.NoRoute()
-	panic("TODO(john): spin up the naughty server")
+func serverEndpoints(ginRouter *gin.Engine, serverInstance *data.Server) {
+	faultMonkey := server.NewFaultMonkey(serverInstance)
+	ginRouter.NoRoute(faultMonkey.Handle)
 }

@@ -30,7 +30,7 @@ const (
 )
 
 func LoadConfig(configFile string) (*AppConfig, error) {
-	configBytes, err := os.ReadFile(os.Getenv("CONFIG_FILE"))
+	configBytes, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("LoadCOnfig(%s): %s", configFile, err.Error())
 	}

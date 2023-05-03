@@ -16,7 +16,7 @@ import (
 
 var gatewayRequests = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "gateway_requests",
 		Help:      "The number of gateway requests, keyed by host",
 	},
@@ -24,7 +24,7 @@ var gatewayRequests = promauto.NewCounterVec(
 )
 var gatewayRequestsLatency = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "gateway_requests_latency",
 		Help:      "The latency of gateway requests, keyed by host",
 	},
@@ -33,7 +33,7 @@ var gatewayRequestsLatency = promauto.NewCounterVec(
 
 var gatewayResponses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "gateway_responses",
 		Help:      "The number of gateway responses, keyed by response code and host",
 	},
@@ -45,7 +45,7 @@ func GatewayHandler(c *gin.Context) {
 	host := ""
 	defer func() {
 		gatewayRequestsLatency.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			host,
 			c.Request.Method,
 		).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
@@ -55,7 +55,7 @@ func GatewayHandler(c *gin.Context) {
 	hostAndQuery := c.Param("hostAndQuery")
 	if hostAndQuery == "" {
 		gatewayResponses.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			c.Request.Method,
 			fmt.Sprint(http.StatusNotFound),
@@ -71,12 +71,12 @@ func GatewayHandler(c *gin.Context) {
 	hostAndQueryUrl, err := url.Parse(hostAndQuery)
 	if err != nil {
 		gatewayRequests.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			c.Request.Method,
 		).Inc()
 		gatewayResponses.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			c.Request.Method,
 			fmt.Sprint(http.StatusBadRequest),
@@ -86,7 +86,7 @@ func GatewayHandler(c *gin.Context) {
 	}
 	host = hostAndQueryUrl.Host
 	gatewayRequests.WithLabelValues(
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 		host,
 		c.Request.Method,
 	).Inc()
@@ -107,7 +107,7 @@ func GatewayHandler(c *gin.Context) {
 		log.Printf("%s: %s", hostAndQuery, err.Error())
 		c.Writer.Header().Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 		gatewayResponses.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			hostAndQueryUrl.Host,
 			c.Request.Method,
 			fmt.Sprint(http.StatusBadGateway),
@@ -120,7 +120,7 @@ func GatewayHandler(c *gin.Context) {
 
 	// Send the status
 	gatewayResponses.WithLabelValues(
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 		hostAndQueryUrl.Host,
 		c.Request.Method,
 		fmt.Sprint(resp.StatusCode),

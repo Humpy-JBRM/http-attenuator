@@ -12,7 +12,7 @@ import (
 
 var hsakRequests = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "hsak_requests",
 		Help:      "The number of requests to HSAK, keyed by customer API key",
 	},
@@ -33,20 +33,20 @@ var customerbyApiKey = map[string]string{
 
 // BillingMiddleware is a stub.
 //
-// We simply disallow anybody who doesnt have a X-Migaloo-Api-Key
+// We simply disallow anybody who doesnt have a X-Faultmonkey-Api-Key
 func BillingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.URL.Path != "/api/v1/metrics" {
-			customer := customerbyApiKey[c.Request.Header.Get(data.HEADER_X_MIGALOO_API_KEY)]
-			c.Request.Header.Add(data.HEADER_X_MIGALOO_API_CUSTOMER, customer)
+		if c.Request.URL.Path != "/metrics" {
+			customer := customerbyApiKey[c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_API_KEY)]
+			c.Request.Header.Add(data.HEADER_X_FAULTMONKEY_API_CUSTOMER, customer)
 			hsakRequests.WithLabelValues(
-				c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+				c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 				customer,
 				c.Request.URL.Path,
 				c.Request.Method,
 				"",
 			).Inc()
-			if c.Request.Header.Get(data.HEADER_X_MIGALOO_API_KEY) == "" {
+			if c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_API_KEY) == "" {
 				c.AbortWithError(
 					http.StatusPaymentRequired,
 					fmt.Errorf("Invalid API key"),

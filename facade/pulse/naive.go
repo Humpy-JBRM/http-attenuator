@@ -31,7 +31,7 @@ type PulseImpl struct {
 
 var pulses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "pulse",
 		Help:      "The pulse heartbeats, keyed by pulse name and type",
 	},
@@ -39,7 +39,7 @@ var pulses = promauto.NewCounterVec(
 )
 var pulseWaitTime = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "pulse_wait_time",
 		Help:      "Time spent waiting for pulses",
 	},
@@ -47,7 +47,7 @@ var pulseWaitTime = promauto.NewCounterVec(
 )
 var pulseSink = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "pulse_sink",
 		Help:      "Number of pulses added",
 	},
@@ -55,7 +55,7 @@ var pulseSink = promauto.NewCounterVec(
 )
 var pulseDrain = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "pulse_drain",
 		Help:      "Pulses fetched",
 	},

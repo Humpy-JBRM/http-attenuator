@@ -17,7 +17,7 @@ import (
 
 var brokerRequests = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "broker_requests",
 		Help:      "The number of broker requests, keyed by service",
 	},
@@ -25,7 +25,7 @@ var brokerRequests = promauto.NewCounterVec(
 )
 var brokerRequestsLatency = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "broker_requests_latency",
 		Help:      "The latency of broker requests, keyed by service",
 	},
@@ -33,7 +33,7 @@ var brokerRequestsLatency = promauto.NewCounterVec(
 )
 var brokerResponses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "broker_responses",
 		Help:      "The number of broker responses, keyed by response code and service",
 	},
@@ -41,7 +41,7 @@ var brokerResponses = promauto.NewCounterVec(
 )
 var brokerCost = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "broker_cost",
 		Help:      "The cost of broker responses, keyed by service, backend and customer",
 	},
@@ -53,13 +53,13 @@ func BrokerHandler(c *gin.Context) {
 	serviceAndUri := c.Param("serviceAndUri")
 	if serviceAndUri == "" {
 		brokerRequests.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			"",
 			c.Request.Method,
 		).Inc()
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			"",
 			c.Request.Method,
@@ -78,13 +78,13 @@ func BrokerHandler(c *gin.Context) {
 	fields := strings.Split(serviceAndUri, "/")
 	if len(fields) == 0 {
 		brokerRequests.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			"",
 			c.Request.Method,
 		).Inc()
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			"",
 			c.Request.Method,
@@ -98,7 +98,7 @@ func BrokerHandler(c *gin.Context) {
 	backend := broker.GetServiceMap().GetBackend(fields[0])
 	if backend == nil {
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			backend.Label,
 			c.Request.Method,
@@ -110,22 +110,22 @@ func BrokerHandler(c *gin.Context) {
 
 	// Update stats
 	brokerRequests.WithLabelValues(
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 		fields[0],
 		backend.Label,
 		c.Request.Method,
 	).Inc()
 	brokerCost.WithLabelValues(
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 		fields[0],
 		backend.Label,
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_API_CUSTOMER),
+		c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_API_CUSTOMER),
 	).Add(backend.Cost)
 
 	nowMillis := time.Now().UTC().UnixMilli()
 	defer func() {
 		brokerRequestsLatency.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			fields[0],
 			backend.Label,
 			c.Request.Method,
@@ -149,7 +149,7 @@ func BrokerHandler(c *gin.Context) {
 		log.Printf("%s: %s: %s", fields[0], backend, err.Error())
 		c.Writer.Header().Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
 		brokerResponses.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"",
 			backend.Label,
 			c.Request.Method,
@@ -163,7 +163,7 @@ func BrokerHandler(c *gin.Context) {
 
 	// Send the status
 	brokerResponses.WithLabelValues(
-		c.Request.Header.Get(data.HEADER_X_MIGALOO_TAG),
+		c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 		fields[0],
 		backend.Label,
 		c.Request.Method,

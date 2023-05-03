@@ -19,7 +19,7 @@ import (
 
 var httpClientRequests = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "http_client_requests",
 		Help:      "The http_client requests, keyed by host, method and URI (without query string)",
 	},
@@ -27,7 +27,7 @@ var httpClientRequests = promauto.NewCounterVec(
 )
 var httpClientResponses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "http_client_responses",
 		Help:      "The http_client responses, keyed by host, method, URI (without query string) and status code",
 	},
@@ -35,7 +35,7 @@ var httpClientResponses = promauto.NewCounterVec(
 )
 var httpClientRequestBytes = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "http_client_request_bytes",
 		Help:      "The http_client bytes sent, keyed by host, method and URI (without query string)",
 	},
@@ -43,7 +43,7 @@ var httpClientRequestBytes = promauto.NewCounterVec(
 )
 var httpClientResponseBytes = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "http_client_response_bytes",
 		Help:      "The http_client bytes received, keyed by host, method and URI (without query string)",
 	},
@@ -51,7 +51,7 @@ var httpClientResponseBytes = promauto.NewCounterVec(
 )
 var httpClientRequestsFailures = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "http_client_request_failures",
 		Help:      "The http_client request failures, keyed by host, method and URI (without query string)",
 	},
@@ -59,7 +59,7 @@ var httpClientRequestsFailures = promauto.NewCounterVec(
 )
 var httpClientRequestsWaiting = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "http_client_requests_wait",
 		Help:      "The http_client requests wait time in millis, keyed by host, method and URI (without query string)",
 	},
@@ -67,7 +67,7 @@ var httpClientRequestsWaiting = promauto.NewCounterVec(
 )
 var httpClientRequestsLatency = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "http_client_requests_latency",
 		Help:      "The http_client requests latency (round-trip-time) in millis, keyed by host, method and URI (without query string)",
 	},

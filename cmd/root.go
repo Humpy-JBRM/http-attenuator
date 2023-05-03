@@ -38,6 +38,7 @@ func init() {
 	rootCmd.AddCommand(gatewayCmd)
 	rootCmd.AddCommand(proxyCmd)
 	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(serverCmd)
 
 	// Microservices
 }
@@ -68,13 +69,15 @@ func LoadConfig(cfgFile string) error {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("ERROR|cmd.initConfig()|Could not read file %s|%s", viper.ConfigFileUsed(), err.Error())
+		return fmt.Errorf("ERROR|cmd.LoadConfig()|Could not read file %s|%s", viper.ConfigFileUsed(), err.Error())
 	}
 
 	// Load the structured config
 	var err error
 	appConfig, err = data.LoadConfig(viper.ConfigFileUsed())
-	return fmt.Errorf("cmd.LoadConfig(): %s", viper.ConfigFileUsed(), err.Error())
+	if err != nil {
+		return fmt.Errorf("cmd.LoadConfig(%s): %s", viper.ConfigFileUsed(), err.Error())
+	}
 
 	for _, key := range viper.AllKeys() {
 		log.Printf("%s: %v\n", key, viper.Get(key))

@@ -51,5 +51,13 @@
             "program": "${fileDirname}",
             "args": ["run"],
         },
+        {
+            "name": "Server",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "args": ["server"],
+        },
     ]
 }

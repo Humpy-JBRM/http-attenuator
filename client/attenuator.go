@@ -12,7 +12,7 @@ import (
 
 var attenuatedRequestsWaitTime = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "attenuated_requests_wait",
 		Help:      "The attenuator wait time in millis, keyed by name",
 	},

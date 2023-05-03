@@ -57,7 +57,7 @@ type Backend struct {
 
 var backendLatency = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "backend_latency",
 		Help:      "The latency for each backend",
 	},
@@ -65,7 +65,7 @@ var backendLatency = promauto.NewCounterVec(
 )
 var backendStats = promauto.NewGaugeVec(
 	prometheus.GaugeOpts{
-		Namespace: "migaloo",
+		Namespace: "faultmonkey",
 		Name:      "backend_stats",
 		Help:      "Various stats for each backend",
 	},

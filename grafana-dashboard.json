@@ -112,7 +112,7 @@
             "uid": "VHntH_PVk"
           },
           "editorMode": "code",
-          "expr": "rate(migaloo_broker_requests[1m])",
+          "expr": "rate(faultmonkey_broker_requests[1m])",
           "legendFormat": "{{backend}}",
           "range": true,
           "refId": "A"
@@ -205,7 +205,7 @@
             "uid": "VHntH_PVk"
           },
           "editorMode": "code",
-          "expr": "rate(migaloo_gateway_requests[1m])",
+          "expr": "rate(faultmonkey_gateway_requests[1m])",
           "legendFormat": "{{host}}",
           "range": true,
           "refId": "A"
@@ -273,7 +273,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(migaloo_broker_requests[1m])",
+          "expr": "rate(faultmonkey_broker_requests[1m])",
           "format": "heatmap",
           "instant": true,
           "legendFormat": "{{backend}}",
@@ -341,7 +341,7 @@
             "uid": "VHntH_PVk"
           },
           "editorMode": "code",
-          "expr": "sum by (customer) (migaloo_broker_cost / 100)",
+          "expr": "sum by (customer) (faultmonkey_broker_cost / 100)",
           "legendFormat": "{{customer}}",
           "range": true,
           "refId": "A"

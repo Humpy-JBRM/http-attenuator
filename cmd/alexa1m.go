@@ -109,7 +109,7 @@ func worker(requestChan <-chan string, wg *sync.WaitGroup) {
 			URL:    u,
 			Header: http.Header{},
 		}
-		req.Header.Add(data.HEADER_X_MIGALOO_API_KEY, apiKey)
+		req.Header.Add(data.HEADER_X_FAULTMONKEY_API_KEY, apiKey)
 		log.Println(targetUrl)
 		_, err := client.Do(&req)
 		if err != nil {

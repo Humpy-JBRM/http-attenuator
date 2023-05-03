@@ -132,7 +132,7 @@ Point your prometheus config at http://{GATEWAY_ADDRESS}/metrics to start scrapi
 
 If you add a header to your request of:
 
-    X-Migaloo-Tag: foo
+    X-Faultmonkey-Tag: foo
 
 then this tag is available as a prometheus label.
 

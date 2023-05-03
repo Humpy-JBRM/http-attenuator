@@ -20,7 +20,7 @@ func NewRouter() (*gin.Engine, error) {
 	router.Use(
 		func(ctx *gin.Context) {
 			ctx.Set("X-Real-Ip", ctx.Request.Header.Get("X-Real-Ip"))
-			ctx.Set("X-Migaloo-Api-Key", ctx.Request.Header.Get("X-Migaloo-Api-Key"))
+			ctx.Set("X-Faultmonkey-Api-Key", ctx.Request.Header.Get("X-Faultmonkey-Api-Key"))
 		},
 	)
 
@@ -48,7 +48,7 @@ func NewRouter() (*gin.Engine, error) {
 
 	// Add routes / endpoints here
 	// router.NoRoute(ServeCachedFile)
-	router.GET("/api/v1/metrics", prometheusHandler())
+	router.GET("/metrics", prometheusHandler())
 	return router, nil
 }
 

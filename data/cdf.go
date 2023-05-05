@@ -49,3 +49,19 @@ func ChooseFromCDF(probability float64, cdf []HasCDF) HasCDF {
 	// We should never reach here, but it keeps the compiler happy
 	return cdf[rand.Intn(len(cdf))]
 }
+
+func Choose(rule string, cdf []HasCDF, rng *rand.Rand) HasCDF {
+	var choice HasCDF
+	switch rule {
+	case "weighted":
+		choice = ChooseFromCDF(rng.Float64(), cdf)
+
+	case "uniform":
+		choice = cdf[rng.Intn(len(cdf))]
+		fallthrough
+
+	default:
+	}
+
+	return choice
+}

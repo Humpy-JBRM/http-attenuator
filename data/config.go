@@ -130,6 +130,10 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	for _, serverHost := range appConfig.Config.Server.Hosts {
 		serverHost.pathologyProfile = GetProfileRegistry().GetPathologyProfile(serverHost.PathologyProfileName)
 	}
+
+	// Backpatch the broker config
+	appConfig.Config.Broker.backpatch()
+
 	return &appConfig, nil
 }
 
@@ -140,6 +144,7 @@ type AppConfig struct {
 type Config struct {
 	PathologiesFromConfig map[string]PathologyProfileFromConfig `yaml:"pathologies" json:"pathologies"`
 	Server                Server                                `yaml:"server" json:"server"`
+	Broker                Broker                                `yaml:"broker" json:"broker"`
 
 	// These are backpatched
 	pathologyProfiles map[string]PathologyProfile

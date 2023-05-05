@@ -43,7 +43,7 @@ This is a labour of love, something I've wanted to build for a long time, and I'
 
 I'm starting to think that there are (at least) seven separate use cases for commercialising this:
 
-    - enapsulating all retry / failure logic behind a sing;e interface
+    - enapsulating all retry / failure logic behind a single interface
 
     - testing / validating fault handling in code
 

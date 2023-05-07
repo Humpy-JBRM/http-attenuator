@@ -34,6 +34,194 @@
         "type": "prometheus",
         "uid": "VHntH_PVk"
       },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 50,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "percent"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "VHntH_PVk"
+          },
+          "editorMode": "code",
+          "expr": "rate(faultmonkey_pathology_requests [1m])",
+          "legendFormat": "{{pathology}}-{{code}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Faultmonkey Requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VHntH_PVk"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 50,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "VHntH_PVk"
+          },
+          "editorMode": "code",
+          "expr": "rate(faultmonkey_pathology_latency[1m])",
+          "legendFormat": "{{pathology}}-{{code}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Faultmonkey Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VHntH_PVk"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -90,7 +278,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 8
       },
       "id": 4,
       "options": {
@@ -112,7 +300,7 @@
             "uid": "VHntH_PVk"
           },
           "editorMode": "code",
-          "expr": "rate(faultmonkey_broker_requests[1m])",
+          "expr": "rate(faultmonkey_upstream_requests[1m])",
           "legendFormat": "{{backend}}",
           "range": true,
           "refId": "A"
@@ -183,7 +371,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 8
       },
       "id": 2,
       "options": {
@@ -239,7 +427,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 9
+        "y": 17
       },
       "id": 6,
       "options": {
@@ -273,7 +461,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(faultmonkey_broker_requests[1m])",
+          "expr": "rate(faultmonkey_upstream_requests[1m])",
           "format": "heatmap",
           "instant": true,
           "legendFormat": "{{backend}}",
@@ -316,7 +504,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 9
+        "y": 17
       },
       "id": 8,
       "options": {
@@ -367,7 +555,6 @@
   "timezone": "",
   "title": "HSAK",
   "uid": "DGOVc_P4z",
-  "version": 6,
+  "version": 8,
   "weekStart": ""
 }
-

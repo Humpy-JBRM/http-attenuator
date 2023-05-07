@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"http-attenuator/api"
+	"http-attenuator/broker"
 	"http-attenuator/data"
+	"http-attenuator/server"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -26,6 +28,30 @@ func RunRun(cmd *cobra.Command, args []string) {
 		runAddress = viper.GetString(data.CONF_ATTENUATOR_LISTEN)
 	}
 
+	// Configure the server for running.
+	//
+	// This takes care of any backpatching, config validation etc.
+	serverBuilder, err := server.NewServerBuilder().FromConfig(appConfig)
+	if err != nil {
+		log.Fatalf("cmd.runServer(): %s", err.Error())
+	}
+	serverInstance, err := serverBuilder.Build()
+	if err != nil {
+		log.Fatalf("cmd.runServer(): %s", err.Error())
+	}
+
+	// Register the service broker so it can be picked up by the API
+	// handler
+	broker.RegisterServiceBroker(appConfig.Config.Broker)
+
+	// All upstream handlers use the service broker
+	//
+	// TODO(john): there's too much heavy-lifting going on to avoid
+	// import loops.  This needs to be fixed.
+	for _, upstreamService := range appConfig.Config.Broker.UpstreamFromConfig {
+		upstreamService.HandlerFunc = broker.GetServiceBroker().Handle
+	}
+
 	ginRouter, err := api.NewRouter()
 	if err != nil {
 		log.Fatalf("FATAL|cmd.runServer()|Could not start attenuator|%s", err.Error())
@@ -35,6 +61,7 @@ func RunRun(cmd *cobra.Command, args []string) {
 	configEndpoints(ginRouter)
 	brokerEndpoints(ginRouter)
 	gatewayEndpoints(ginRouter)
+	serverEndpoints(ginRouter, serverInstance)
 
 	if viper.GetBool(data.CONF_PROXY_ENABLE) {
 		go runProxy()

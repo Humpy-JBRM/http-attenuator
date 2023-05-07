@@ -105,7 +105,7 @@ func GatewayHandler(c *gin.Context) {
 	resp, err := client.Do(&request)
 	if err != nil {
 		log.Printf("%s: %s", hostAndQuery, err.Error())
-		c.Writer.Header().Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
+		c.Writer.Header().Add(data.HEADER_X_FAULTMONKEY_ERROR, err.Error())
 		gatewayResponses.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			hostAndQueryUrl.Host,

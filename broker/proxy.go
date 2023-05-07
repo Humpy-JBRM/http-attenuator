@@ -41,7 +41,7 @@ func (p *ForwardProxy) DoSync(ctx context.Context, req *data.GatewayRequest) (*d
 			StatusCode: http.StatusInternalServerError,
 		}
 
-		response.Headers.Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
+		response.Headers.Add(data.HEADER_X_FAULTMONKEY_ERROR, err.Error())
 		return response, err
 	}
 
@@ -50,7 +50,7 @@ func (p *ForwardProxy) DoSync(ctx context.Context, req *data.GatewayRequest) (*d
 	if err != nil {
 		err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.GetUrl().String(), e.Error())
 		log.Println(err)
-		resp.Headers.Add(data.HEADER_X_ATTENUATOR_ERROR, err.Error())
+		resp.Headers.Add(data.HEADER_X_FAULTMONKEY_ERROR, err.Error())
 	}
 
 	return resp, err

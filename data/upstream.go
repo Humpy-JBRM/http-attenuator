@@ -30,7 +30,7 @@ var upstreamErrors = promauto.NewCounterVec(
 		Name:      "upstream_errors",
 		Help:      "The number of upstream errors, keyed by upstream/backend",
 	},
-	[]string{"tag", "upstream", "backend", "method"},
+	[]string{"tag", "upstream", "backend", "method", "code"},
 )
 var upstreamLatency = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -137,8 +137,9 @@ func (u *UpstreamImpl) Handle(c *gin.Context) {
 			u.GetName(),
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			c.Request.Method,
+			fmt.Sprint(http.StatusBadGateway),
 		).Inc()
-		c.AbortWithError(http.StatusNotFound, err)
+		c.AbortWithError(http.StatusBadGateway, err)
 
 		return
 	}
@@ -266,10 +267,11 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 	// Make the request
 	//
 	// TODO(john): put it through the attenuator / circuit breaker etc
+	now := time.Now().UTC().UnixMilli()
 	client := http.Client{}
 	resp, err := client.Do(&request)
 	if err != nil {
-		c.Writer.Header().Add(HEADER_X_ATTENUATOR_ERROR, err.Error())
+		c.Writer.Header().Add(HEADER_X_FAULTMONKEY_ERROR, err.Error())
 		upstreamResponses.WithLabelValues(
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
 			u.GetName(),
@@ -287,6 +289,9 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 			resp.Header.Add(header, val[0])
 		}
 	}
+
+	latency := time.Now().UTC().UnixMilli() - now
+	resp.Header.Add(HEADER_X_FAULTMONKEY_BACKEND_LATENCY, fmt.Sprint(latency))
 	if u.Recorder != nil {
 		// TODO(john): this is ugly and inefficient.  Implement something more elegant
 		responseBody, _ := io.ReadAll(resp.Body)
@@ -304,6 +309,13 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 	defer resp.Body.Close()
 
 	// Send the status
+	upstreamLatency.WithLabelValues(
+		c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
+		u.GetName(),
+		c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
+		c.Request.Method,
+		fmt.Sprint(resp.StatusCode),
+	).Add(float64(latency))
 	upstreamResponses.WithLabelValues(
 		c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
 		u.GetName(),
@@ -311,6 +323,15 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 		c.Request.Method,
 		fmt.Sprint(resp.StatusCode),
 	).Inc()
+	if resp.StatusCode >= 400 {
+		upstreamErrors.WithLabelValues(
+			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
+			u.GetName(),
+			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
+			c.Request.Method,
+			fmt.Sprint(resp.StatusCode),
+		).Inc()
+	}
 	c.Status(resp.StatusCode)
 
 	// Send the headers

@@ -144,12 +144,16 @@ type AppConfig struct {
 type Config struct {
 	PathologiesFromConfig map[string]PathologyProfileFromConfig `yaml:"pathologies" json:"pathologies"`
 	Server                Server                                `yaml:"server" json:"server"`
-	Broker                Broker                                `yaml:"broker" json:"broker"`
+	Broker                *BrokerImpl                           `yaml:"broker" json:"broker"`
 
 	// These are backpatched
 	pathologyProfiles map[string]PathologyProfile
 }
 
-func (c *Config) GetProfile(name string) PathologyProfile {
+func (c *Config) GetBroker() Broker {
+	return c.Broker
+}
+
+func (c *Config) GetPathologyProfile(name string) PathologyProfile {
 	return c.pathologyProfiles[name]
 }

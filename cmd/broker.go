@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"http-attenuator/api"
-	broker "http-attenuator/api/v1/broker"
+	broker_api "http-attenuator/api/v1/broker"
+	"http-attenuator/broker"
 	"http-attenuator/data"
 	"log"
 
@@ -28,6 +29,18 @@ func RunBroker(cmd *cobra.Command, args []string) {
 		brokerAddress = viper.GetString(data.CONF_BROKER_LISTEN)
 	}
 
+	// Register the service broker so it can be picked up by the API
+	// handler
+	broker.RegisterServiceBroker(appConfig.Config.Broker)
+
+	// All upstream handlers use the service broker
+	//
+	// TODO(john): there's too much heavy-lifting going on to avoid
+	// import loops.  This needs to be fixed.
+	for _, upstreamService := range appConfig.Config.Broker.UpstreamFromConfig {
+		upstreamService.HandlerFunc = broker.GetServiceBroker().Handle
+	}
+
 	ginRouter, err := api.NewRouter()
 	if err != nil {
 		log.Fatalf("FATAL|cmd.runServer()|Could not start service broker|%s", err.Error())
@@ -50,9 +63,9 @@ func RunBroker(cmd *cobra.Command, args []string) {
 }
 
 func brokerEndpoints(ginRouter *gin.Engine) {
-	ginRouter.GET("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.DELETE("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.OPTIONS("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.POST("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
-	ginRouter.PUT("/api/v1/broker/*serviceAndUri", broker.BrokerHandler)
+	ginRouter.GET("/api/v1/broker/*serviceAndUri", broker_api.BrokerHandler)
+	ginRouter.DELETE("/api/v1/broker/*serviceAndUri", broker_api.BrokerHandler)
+	ginRouter.OPTIONS("/api/v1/broker/*serviceAndUri", broker_api.BrokerHandler)
+	ginRouter.POST("/api/v1/broker/*serviceAndUri", broker_api.BrokerHandler)
+	ginRouter.PUT("/api/v1/broker/*serviceAndUri", broker_api.BrokerHandler)
 }

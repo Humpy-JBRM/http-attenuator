@@ -13,7 +13,7 @@ import (
 
 func validateConfig(t *testing.T, appConfig *AppConfig) {
 	// We should have a pathology profile called 'simple'
-	simplePathologyProfile := appConfig.Config.GetProfile("simple")
+	simplePathologyProfile := appConfig.Config.GetPathologyProfile("simple")
 
 	// Check that this pathology is registered.
 	// If it is not, then it cannot be backpatched into the server

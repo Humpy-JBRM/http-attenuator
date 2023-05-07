@@ -1,13 +1,32 @@
-package broker
+package client
 
 import (
 	"context"
 	"fmt"
-	"http-attenuator/client"
 	"http-attenuator/data"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var proxyLatency = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "faultmonkey",
+		Name:      "proxy_latency",
+		Help:      "Service broker request latency",
+	},
+	[]string{"upstream", "code"},
+)
+var proxyRequests = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "faultmonkey",
+		Name:      "proxy_requests",
+		Help:      "Requests made to the service broker",
+	},
+	[]string{"upstream", "code"},
 )
 
 // ForwardProxy is a simple forward proxy which just plumbs a request
@@ -27,7 +46,9 @@ func (p *ForwardProxy) DoSync(ctx context.Context, req *data.GatewayRequest) (*d
 	// and retry etc
 
 	// Make the request
-	httpClient, err := client.NewHttpClientBuilder().Retries(1).TimeoutMillis(1000).Build()
+	//
+	// TODO(john): respect the circuit-breaker config
+	httpClient, err := NewHttpClientBuilder().Retries(1).TimeoutMillis(1000).Build()
 	if err != nil {
 		err = fmt.Errorf("ForwardProxy.DoSync(%s): %s", req.GetUrl().String(), err.Error())
 		log.Println(err)

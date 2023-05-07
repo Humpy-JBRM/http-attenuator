@@ -22,4 +22,5 @@ go.work
 
 .*.swp
 __debug_bin
+gateway-saved-requests-and-responses
 

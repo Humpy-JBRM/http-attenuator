@@ -105,6 +105,88 @@ config:
                 application/json
               ]
             body: '{"success": true, "pathology": "good_boy"}'
+  broker:
+    listen: 0.0.0.0:8888
+    upstream:
+      # alex1m service
+      # This is a contrived service broker which simply spreads requests
+      # across the top 10 sites from the Alexa Top Million list
+      #
+      # This is mainly to give us nice eye-candy in grafana and verify
+      # that all of the metrics are doing what we expect them to do
+      "alexa1m":
+        # TODO(john): hook up the TRIBE billing engine
+        cost:
+          alexa1m: 1
+        backends:
+          amazon.com:
+            impl: proxy
+            url: https://amazon.com
+            # 'weight' is used to calculate a CDF so we spread load in
+            # a weighted manner
+            #
+            # See: service_map.go
+            weight: 1
+            # 'cost' is a placeholder, and a TODO(john) when hooked up to TRIBE.
+            # For now, it's 'how many cents did we charge you for this'
+            cost:
+          baidu.com:
+            impl: proxy
+            url: https://baidu.com
+            weight: 8
+            cost:
+          bilibili.com:
+            impl: proxy
+            url: https://bilibili.com
+            weight: 7
+            cost:
+          facebook.com:
+            impl: proxy
+            url: https://facebook.com
+            weight: 6
+            cost:
+          google.com:
+            impl: proxy
+            url: https://google.com
+            weight: 10
+            cost:
+          qq.com:
+            impl: proxy
+            url: https://qq.com
+            weight: 5
+            cost:
+          twitter.com:
+            impl: proxy
+            url: https://twitter.com
+            weight: 4
+            cost:
+          wikipedia.org:
+            impl: proxy
+            url: https://wikipedia.com
+            weight: 2
+            cost:
+          youtube.com:
+            impl: proxy
+            url: https://youtube.com
+            weight: 9
+            cost:
+          zhihu.com:
+            impl: proxy
+            url: https://zhihu.com
+            weight: 3
+            cost:
+        rule: weighted
+        recorder:
+          # directory where to store requests and responses for this
+          # upstream service
+          # A blank value means we are not recording this thing - so
+          # you could (if you wanted) only record requests or only
+          # record responses.
+          # The directory will be created if it does not exist
+          #
+          # The filename is ${ID}-request.json or ${ID}-response.json
+          requests: gateway-saved-requests-and-responses
+          responses: gateway-saved-requests-and-responses
   # Here we define our servers.
   #
   # They are mapped to particular hostnames (from the Host: header)

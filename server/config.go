@@ -20,6 +20,12 @@ func (b *ServerBuilderImpl) FromConfig(appConfig *data.AppConfig) (ServerBuilder
 	b.impl = appConfig.Config.Server
 
 	// Validate the config
+	for _, u := range appConfig.Config.Broker.UpstreamFromConfig {
+		err := u.Backpatch()
+		if err != nil {
+			return b, err
+		}
+	}
 
 	// Do any required backpatching
 	return b, nil

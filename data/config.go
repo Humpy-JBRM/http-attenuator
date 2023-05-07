@@ -132,7 +132,7 @@ func LoadConfig(configFile string) (*AppConfig, error) {
 	}
 
 	// Backpatch the broker config
-	appConfig.Config.Broker.backpatch()
+	appConfig.Config.Broker.Backpatch()
 
 	return &appConfig, nil
 }

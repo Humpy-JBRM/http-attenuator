@@ -220,6 +220,15 @@ func validateConfig(t *testing.T, appConfig *AppConfig) {
 	// if !util.AlmostEqual(expectedTimeout, actualTimeout) {
 	// 	t.Errorf("Expected timeout ~%.2f, but was %.2f (%d/%d)", expectedTimeout, actualTimeout, selected["timeout"], iterations)
 	// }
+
+	// We should be recording the 'alex1am' service broker
+	alexa1mUpstream := appConfig.Config.Broker.GetUpstream("alexa1m")
+	if alexa1mUpstream == nil {
+		t.Errorf("Expected an upstream of 'alexa1m'")
+	}
+	if alexa1mUpstream.(*UpstreamImpl).Recorder == nil {
+		t.Errorf("Expected upstream 'alexa1m' to have a recorder set up")
+	}
 }
 
 func TestParseConfigYaml(t *testing.T) {

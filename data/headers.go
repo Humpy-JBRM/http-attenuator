@@ -3,8 +3,12 @@ package data
 const (
 	HEADER_X_FAULTMONKEY_API_CUSTOMER = "X-Faultmonkey-Api-Customer"
 	HEADER_X_FAULTMONKEY_API_KEY      = "X-Faultmonkey-Api-Key"
-	HEADER_X_ATTENUATOR_ERROR     = "X-Attenuator-Error"
+	HEADER_X_ATTENUATOR_ERROR         = "X-Attenuator-Error"
 	HEADER_X_FAULTMONKEY_TAG          = "X-faultmonkey-tag"
+
+	// This header is set by the broker to indicate the requested
+	// upstream service
+	HEADER_X_FAULTMONKEY_UPSTREAM = "X-faultmonkey-upstream"
 
 	// This is a response header that indicates the backend
 	// which handled the request

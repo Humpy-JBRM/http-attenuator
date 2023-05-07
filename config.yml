@@ -88,6 +88,17 @@ config:
             weight: 3
             cost:
         rule: weighted
+        recorder:
+          # directory where to store requests and responses for this
+          # upstream service
+          # A blank value means we are not recording this thing - so
+          # you could (if you wanted) only record requests or only
+          # record responses.
+          # The directory will be created if it does not exist
+          #
+          # The filename is ${ID}-request.json or ${ID}-response.json
+          requests: gateway-saved-requests-and-responses
+          responses: gateway-saved-requests-and-responses
       # Name of this service.
       # We use this to map /api/v1/broker/{SERVICE} to the service map
       "search":
@@ -160,8 +171,8 @@ config:
       # A blank value means we are not recording this thing - so
       # you could (if you wanted) only record requests or only
       # record responses.
-      requests: saved-requests-and-responses
-      responses: saved-requests-and-responses
+      requests: gateway-saved-requests-and-responses
+      responses: gateway-saved-requests-and-responses
   proxy:
     enable: true
     listen: 0.0.0.0:8080

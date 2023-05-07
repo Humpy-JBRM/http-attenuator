@@ -78,22 +78,16 @@ func (sb *ServiceBrokerImpl) Handle(c *gin.Context) {
 	// Extract the service from the URL
 	serviceAndUri := c.Param("serviceAndUri")
 	if serviceAndUri == "" {
-		brokerRequests.WithLabelValues(
-			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			"", // upstream
-			"", // backend
-			c.Request.Method,
-		).Inc()
 		brokerResponses.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			"", // upstream
+			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
 			"", // backend
 			c.Request.Method,
 			fmt.Sprint(http.StatusNotFound),
 		).Inc()
 		brokerErrors.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			"", // upstream
+			"", // upstream service name
 			"", // backend
 			c.Request.Method,
 		).Inc()
@@ -111,21 +105,21 @@ func (sb *ServiceBrokerImpl) Handle(c *gin.Context) {
 	if len(fields) == 0 {
 		brokerRequests.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			"", // upstream
+			"", // upstream service
 			"", // backend
 			c.Request.Method,
 		).Inc()
 		brokerResponses.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			"", // upstream
-			"", // backend
+			fields[0], // upstream service
+			"",        // backend
 			c.Request.Method,
 			fmt.Sprint(http.StatusNotFound),
 		).Inc()
 		brokerErrors.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			"", // upstream
-			"", // backend
+			sb.GetName(), // backend
+			"",           // backend
 			c.Request.Method,
 		).Inc()
 		c.AbortWithError(http.StatusNotFound, fmt.Errorf("%s: unknown service", c.Request.URL.String()))
@@ -137,7 +131,7 @@ func (sb *ServiceBrokerImpl) Handle(c *gin.Context) {
 	defer func() {
 		brokerRequestsLatency.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			upstream.GetName(),
+			fields[0],
 			"", // backend
 			c.Request.Method,
 		).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
@@ -149,8 +143,8 @@ func (sb *ServiceBrokerImpl) Handle(c *gin.Context) {
 		log.Println(err)
 		brokerErrors.WithLabelValues(
 			c.Request.Header.Get(data.HEADER_X_FAULTMONKEY_TAG),
-			"", // upstream
-			"", // backend
+			upstream.GetName(), // upstream
+			"",                 // backend
 			c.Request.Method,
 		).Inc()
 		c.AbortWithError(http.StatusNotFound, err)

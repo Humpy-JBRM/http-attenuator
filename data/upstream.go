@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -49,7 +50,7 @@ var upstreamResponses = promauto.NewCounterVec(
 
 type Upstream interface {
 	Handler
-	ChooseBackend() UpstreamBackend
+	ChooseBackend(preferredBackend string) UpstreamBackend
 }
 
 type UpstreamImpl struct {
@@ -59,6 +60,8 @@ type UpstreamImpl struct {
 	Backends    map[string]*UpstreamBackendImpl `yaml:"backends" json:"backends"`
 	Rule        string                          `yaml:"rule" json:"rule"`
 	Pathology   string                          `yaml:"pathology" json:"pathology"`
+	Recorder    *RecorderImpl                   `yaml:"recorder" json:"recorder"`
+
 	// These are backpatched
 	backendCDF []HasCDF
 	cost       Cost
@@ -68,12 +71,18 @@ type UpstreamImpl struct {
 	HandlerFunc func(c *gin.Context)
 }
 
-func (u *UpstreamImpl) backpatch() error {
+func (u *UpstreamImpl) Backpatch() error {
 	u.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Backpatch the cost
 	u.cost = &CostImpl{
 		coins: u.Cost,
+	}
+
+	// Kick off the request / response recorder
+	var err error
+	if u.Recorder != nil {
+		err = u.Recorder.Backpatch()
 	}
 
 	// Backpatch the backends CDF
@@ -88,7 +97,16 @@ func (u *UpstreamImpl) backpatch() error {
 		u.backendCDF = append(u.backendCDF, upstreamBackend)
 	}
 
-	return nil
+	// Backends can have their own recorder.
+	// If they don't have one specified, it uses the one from the upstream parent
+	for _, upstreamBackend := range u.Backends {
+		if upstreamBackend.Recorder == nil {
+			upstreamBackend.Recorder = u.Recorder
+		} else {
+			upstreamBackend.Recorder.Backpatch()
+		}
+	}
+	return err
 }
 
 func (u *UpstreamImpl) GetName() string {
@@ -100,31 +118,37 @@ func (u *UpstreamImpl) Handle(c *gin.Context) {
 	nowMillis := time.Now().UTC().UnixMilli()
 	var backend UpstreamBackend
 	defer func() {
-		var backendName string
-		if backend != nil {
-			backendName = backend.GetName()
-		}
 		upstreamLatency.WithLabelValues(
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
-			u.GetName(), // upstream
-			backendName, // backend
+			u.GetName(),
+			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			c.Request.Method,
 		).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	}()
 
 	// Select a backend
-	backend = u.ChooseBackend()
+	backend = u.ChooseBackend(c.GetHeader(HEADER_X_FAULTMONKEY_BACKEND))
 	if backend == nil {
 		err := fmt.Errorf("Handle(%s): No backend for '%s.%s'", c.Request.URL, u.serviceName, u.GetName())
 		log.Println(err)
 		upstreamErrors.WithLabelValues(
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
-			u.GetName(), // upstream
-			"",          // backend
+			u.GetName(),
+			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			c.Request.Method,
 		).Inc()
 		c.AbortWithError(http.StatusNotFound, err)
+
 		return
+	}
+	if c.GetHeader(HEADER_X_REQUEST_ID) == "" {
+		c.Request.Header.Add(HEADER_X_REQUEST_ID, uuid.NewString())
+	}
+	if c.GetHeader(HEADER_X_FAULTMONKEY_BACKEND) == "" {
+		c.Request.Header.Add(HEADER_X_FAULTMONKEY_BACKEND, backend.GetName())
+	}
+	if c.GetHeader(HEADER_X_FAULTMONKEY_UPSTREAM) == "" {
+		c.Request.Header.Add(HEADER_X_FAULTMONKEY_UPSTREAM, u.GetName())
 	}
 
 	// Update the varz
@@ -139,7 +163,13 @@ func (u *UpstreamImpl) Handle(c *gin.Context) {
 	backend.Handle(c)
 }
 
-func (u *UpstreamImpl) ChooseBackend() UpstreamBackend {
+func (u *UpstreamImpl) ChooseBackend(preferredBackend string) UpstreamBackend {
+	if preferredBackend != "" {
+		// The caller has specified that there is a specific backend they want
+		// to use
+		return u.Backends[preferredBackend]
+	}
+
 	backend := Choose(u.Rule, u.backendCDF, u.rng)
 	if backend == nil {
 		return nil
@@ -160,10 +190,11 @@ type UpstreamBackendImplFromConfig map[string]*UpstreamBackendImpl
 type UpstreamBackendImpl struct {
 	// this is backpatched
 	backendName string
-	Impl        string `yaml:"impl" json:"impl"`
-	Url         string `yaml:"url" json:"url"`
-	Weight      int    `yaml:"weight" json:"weight"`
-	Pathology   string `yaml:"pathology" json:"pathology"`
+	Impl        string        `yaml:"impl" json:"impl"`
+	Url         string        `yaml:"url" json:"url"`
+	Weight      int           `yaml:"weight" json:"weight"`
+	Pathology   string        `yaml:"pathology" json:"pathology"`
+	Recorder    *RecorderImpl `yaml:"recorder" json:"recorder"`
 
 	// This is used to override the default cost for this upstream.
 	//
@@ -209,6 +240,16 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 	//http://golang.org/src/pkg/net/http/client.go
 	request.RequestURI = ""
 
+	if u.Recorder != nil {
+		gwr, _ := NewGatewayRequest(
+			"",
+			request.Method,
+			request.URL,
+			request.Header,
+			[]byte{},
+		)
+		u.Recorder.SaveRequest(gwr)
+	}
 	// Make the request
 	//
 	// TODO(john): put it through the attenuator / circuit breaker etc
@@ -218,9 +259,10 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 		c.Writer.Header().Add(HEADER_X_ATTENUATOR_ERROR, err.Error())
 		upstreamResponses.WithLabelValues(
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
-			u.backendName,
 			u.GetName(),
+			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			c.Request.Method,
+			fmt.Sprint(resp.StatusCode),
 		).Inc()
 		c.AbortWithError(http.StatusBadGateway, err)
 		return
@@ -231,8 +273,8 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 	// Send the status
 	upstreamResponses.WithLabelValues(
 		c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
-		u.backendName,
 		u.GetName(),
+		c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 		c.Request.Method,
 		fmt.Sprint(resp.StatusCode),
 	).Inc()

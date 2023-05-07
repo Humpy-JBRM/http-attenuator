@@ -32,11 +32,11 @@ func (b *BrokerImpl) GetUpstream(serviceName string) Upstream {
 	return b.upstream[serviceName]
 }
 
-func (b *BrokerImpl) backpatch() error {
+func (b *BrokerImpl) Backpatch() error {
 	b.upstream = make(map[string]Upstream)
 	for upstreamServiceName, upstreamService := range b.UpstreamFromConfig {
 		upstreamService.serviceName = upstreamServiceName
-		err := upstreamService.backpatch()
+		err := upstreamService.Backpatch()
 		if err != nil {
 			return err
 		}

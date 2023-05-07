@@ -1,6 +1,7 @@
 package data
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -241,15 +242,27 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 	request.RequestURI = ""
 
 	if u.Recorder != nil {
+		// TODO(john): this is ugly and inefficient.  Implement something more elegant
+		requestBody, _ := io.ReadAll(request.Body)
+		request.Body.Close()
+		request.Body = io.NopCloser(bytes.NewReader(requestBody))
 		gwr, _ := NewGatewayRequest(
 			"",
 			request.Method,
 			request.URL,
 			request.Header,
-			[]byte{},
+			requestBody,
 		)
 		u.Recorder.SaveRequest(gwr)
 	}
+
+	requestHeaders := make(http.Header)
+	requestHeaders.Add(HEADER_X_FAULTMONKEY_API_CUSTOMER, request.Header.Get(HEADER_X_FAULTMONKEY_API_CUSTOMER))
+	requestHeaders.Add(HEADER_X_REQUEST_ID, request.Header.Get(HEADER_X_REQUEST_ID))
+	requestHeaders.Add(HEADER_X_FAULTMONKEY_BACKEND, request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND))
+	requestHeaders.Add(HEADER_X_FAULTMONKEY_UPSTREAM, request.Header.Get(HEADER_X_FAULTMONKEY_UPSTREAM))
+	requestHeaders.Add(HEADER_X_FAULTMONKEY_TAG, request.Header.Get(HEADER_X_FAULTMONKEY_TAG))
+
 	// Make the request
 	//
 	// TODO(john): put it through the attenuator / circuit breaker etc
@@ -268,6 +281,26 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 		return
 	}
 
+	// Propagatethe request headers into the response
+	for header, val := range requestHeaders {
+		if resp.Header.Get(header) == "" {
+			resp.Header.Add(header, val[0])
+		}
+	}
+	if u.Recorder != nil {
+		// TODO(john): this is ugly and inefficient.  Implement something more elegant
+		responseBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		resp.Body = io.NopCloser(bytes.NewReader(responseBody))
+		gwr := NewGatewayResponse(
+			request.Header.Get(HEADER_X_REQUEST_ID),
+			resp.StatusCode,
+			responseBody,
+			resp.Header,
+			nil,
+		)
+		u.Recorder.SaveResponse(gwr)
+	}
 	defer resp.Body.Close()
 
 	// Send the status

@@ -149,7 +149,7 @@ func (r *RecorderImpl) saveWorker() {
 				resp.Headers.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			)
 			os.MkdirAll(saveDir, 0755)
-			filename := filepath.Join(saveDir, fmt.Sprintf("%s-request.json", id))
+			filename := filepath.Join(saveDir, fmt.Sprintf("%s-response.json", id))
 			err = os.WriteFile(filename, jsonBytes, 0644)
 			if err != nil {
 				filesSavedErrors.WithLabelValues(upstream, backend, "response").Inc()

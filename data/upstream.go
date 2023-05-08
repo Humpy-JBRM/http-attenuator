@@ -3,6 +3,7 @@ package data
 import (
 	"bytes"
 	"fmt"
+	"http-attenuator/evt"
 	"io"
 	"log"
 	"math/rand"
@@ -38,7 +39,7 @@ var upstreamLatency = promauto.NewCounterVec(
 		Name:      "upstream_latency",
 		Help:      "The latency of upstream services, keyed by upstream/backend",
 	},
-	[]string{"tag", "upstream", "backend", "method"},
+	[]string{"tag", "upstream", "backend", "method", "code"},
 )
 var upstreamResponses = promauto.NewCounterVec(
 	prometheus.CounterOpts{
@@ -118,12 +119,14 @@ func (u *UpstreamImpl) Handle(c *gin.Context) {
 	// Make sure the varz get updated
 	nowMillis := time.Now().UTC().UnixMilli()
 	var backend UpstreamBackend
+	var responseCodeAsString string
 	defer func() {
 		upstreamLatency.WithLabelValues(
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
 			u.GetName(),
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			c.Request.Method,
+			responseCodeAsString,
 		).Add(float64(time.Now().UTC().UnixMilli() - nowMillis))
 	}()
 
@@ -132,12 +135,13 @@ func (u *UpstreamImpl) Handle(c *gin.Context) {
 	if backend == nil {
 		err := fmt.Errorf("Handle(%s): No backend for '%s.%s'", c.Request.URL, u.serviceName, u.GetName())
 		log.Println(err)
+		responseCodeAsString = fmt.Sprint(http.StatusBadGateway)
 		upstreamErrors.WithLabelValues(
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
 			u.GetName(),
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			c.Request.Method,
-			fmt.Sprint(http.StatusBadGateway),
+			responseCodeAsString,
 		).Inc()
 		c.AbortWithError(http.StatusBadGateway, err)
 
@@ -241,6 +245,7 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 	//http: Request.RequestURI can't be set in client requests.
 	//http://golang.org/src/pkg/net/http/client.go
 	request.RequestURI = ""
+	now := time.Now().UTC().UnixMilli()
 
 	if u.Recorder != nil {
 		// TODO(john): this is ugly and inefficient.  Implement something more elegant
@@ -254,6 +259,7 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 			request.Header,
 			requestBody,
 		)
+		gwr.WhenMillis = now
 		u.Recorder.SaveRequest(gwr)
 	}
 
@@ -267,17 +273,26 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 	// Make the request
 	//
 	// TODO(john): put it through the attenuator / circuit breaker etc
-	now := time.Now().UTC().UnixMilli()
 	client := http.Client{}
 	resp, err := client.Do(&request)
 	if err != nil {
+		log.Printf("%s: %s", request.URL.String(), err.Error())
 		c.Writer.Header().Add(HEADER_X_FAULTMONKEY_ERROR, err.Error())
 		upstreamResponses.WithLabelValues(
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
 			u.GetName(),
 			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
 			c.Request.Method,
-			fmt.Sprint(resp.StatusCode),
+			fmt.Sprint(http.StatusBadGateway),
+		).Inc()
+
+		errorClass := evt.GetErrorClassifier().Classify(err)
+		upstreamErrors.WithLabelValues(
+			c.Request.Header.Get(HEADER_X_FAULTMONKEY_TAG),
+			u.GetName(),
+			c.Request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND),
+			c.Request.Method,
+			errorClass,
 		).Inc()
 		c.AbortWithError(http.StatusBadGateway, err)
 		return
@@ -304,6 +319,8 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 			resp.Header,
 			nil,
 		)
+		gwr.WhenMillis = now
+		gwr.DurationMillis = latency
 		u.Recorder.SaveResponse(gwr)
 	}
 	defer resp.Body.Close()

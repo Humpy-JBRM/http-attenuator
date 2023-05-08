@@ -12,7 +12,7 @@ const (
 
 	// This is a response header that indicates the backend
 	// which handled the request
-	HEADER_X_FAULTMONKEY_BACKEND = "X-Baultmonkey-Backend"
+	HEADER_X_FAULTMONKEY_BACKEND = "X-Faultmonkey-Backend"
 
 	// This is a response header that indicates the round-trip
 	// latency of the backend that handled the request

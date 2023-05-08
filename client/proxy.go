@@ -54,11 +54,11 @@ func (p *ForwardProxy) DoSync(ctx context.Context, req *data.GatewayRequest) (*d
 		log.Println(err)
 		response := &data.GatewayResponse{
 			GatewayBase: data.GatewayBase{
-				Id:      req.Id,
-				Headers: req.Headers,
-				Body:    req.Body,
+				Id:         req.Id,
+				Headers:    req.Headers,
+				Body:       req.Body,
+				WhenMillis: time.Now().UTC().UnixMilli(),
 			},
-			WhenMillis: time.Now().UTC().UnixMilli(),
 			StatusCode: http.StatusInternalServerError,
 		}
 

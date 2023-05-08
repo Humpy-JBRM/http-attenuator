@@ -111,8 +111,7 @@ func NewGatewayRequest(id string, method string, requestUrl *url.URL, headers ht
 type GatewayResponse struct {
 	GatewayBase
 	StatusCode     int   `json:"status_code"`
-	WhenMillis     int64 `json:"duration_millis"`
-	DurationMillis int64 `json:"timestamp"`
+	DurationMillis int64 `json:"duration_millis"`
 	Error          error `json:"error,omitempty"`
 	resp           *http.Response
 }

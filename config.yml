@@ -106,43 +106,43 @@ config:
         cost:
           search: 1
         # /api/v1/broker/search will randomly choose between bing and google
-        # backends
-        bing:
-          impl: proxy
-          # The URL to forward-proxy the request to
-          url: https://www.bing.com
-          # Any URL (or POST) params that we want to map
-          params:
-            # Keep the 'q=' parameter exactly as it is, i.e.
-            # we don't need to rename it or map it in any way
-            q: q
-          # Any headers we want to send to the upstream
-          headers:
-            X-Alizee: wiggle
-          record:
-            # directory where to store requests and responses.
-            # A blank value means we are not recording this thing - so
-            # you could (if you wanted) only record requests or only
-            # record responses.
-            requests: search
-            responses: search
-          circuitbreaker:
-            max_concurrent: 2
-            max_hertz: 2
-            retries: 3
-            timeout_millis: 10000
-        google:
-          impl: proxy
-          url: https://www.google.com
-          params:
-            # Keep the 'q=' parameter exactly as it is, i.e.
-            # we don't need to rename it or map it in any way
-            q: q
-          circuitbreaker:
-            max_concurrent: 2
-            max_hertz: 2
-            retries: 3
-            timeout_millis: 10000
+        backends:
+          bing:
+            impl: proxy
+            # The URL to forward-proxy the request to
+            url: https://www.bing.com
+            # Any URL (or POST) params that we want to map
+            params:
+              # Keep the 'q=' parameter exactly as it is, i.e.
+              # we don't need to rename it or map it in any way
+              q: q
+            # Any headers we want to send to the upstream
+            headers:
+              X-Alizee: wiggle
+            record:
+              # directory where to store requests and responses.
+              # A blank value means we are not recording this thing - so
+              # you could (if you wanted) only record requests or only
+              # record responses.
+              requests: search
+              responses: search
+            circuitbreaker:
+              max_concurrent: 2
+              max_hertz: 2
+              retries: 3
+              timeout_millis: 10000
+          google:
+            impl: proxy
+            url: https://www.google.com
+            params:
+              # Keep the 'q=' parameter exactly as it is, i.e.
+              # we don't need to rename it or map it in any way
+              q: q
+            circuitbreaker:
+              max_concurrent: 2
+              max_hertz: 2
+              retries: 3
+              timeout_millis: 10000
         rule: random
       "storage":
         backends:

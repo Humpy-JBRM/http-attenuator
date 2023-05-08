@@ -56,11 +56,11 @@ func Choose(rule string, cdf []HasCDF, rng *rand.Rand) HasCDF {
 	case "weighted":
 		choice = ChooseFromCDF(rng.Float64(), cdf)
 
-	case "uniform":
-		choice = cdf[rng.Intn(len(cdf))]
+	case "uniform", "random":
 		fallthrough
 
 	default:
+		choice = cdf[rng.Intn(len(cdf))]
 	}
 
 	return choice

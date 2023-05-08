@@ -105,6 +105,17 @@ config:
         # The cost of this service, as per TRIBE
         cost:
           search: 1
+        recorder:
+          # directory where to store requests and responses for this
+          # upstream service
+          # A blank value means we are not recording this thing - so
+          # you could (if you wanted) only record requests or only
+          # record responses.
+          # The directory will be created if it does not exist
+          #
+          # The filename is ${ID}-request.json or ${ID}-response.json
+          requests: broker-search
+          responses: broker-search
         # /api/v1/broker/search will randomly choose between bing and google
         backends:
           bing:
@@ -144,21 +155,17 @@ config:
               retries: 3
               timeout_millis: 10000
         rule: random
-      "storage":
-        backends:
-          # TODO(john): be able to integrate with lots of storage providers
-          drive:
-            # Google drive
-            impl: internal
-          onedrive:
-            # MS Onedrive
-            impl: internal
-          s3:
-            # Amazon S3
-            impl: internal
-        # a 'direct' rule means that the backend must be specified
-        # (akthough quite why I would ever need such a thing is lost on me)
-        rule: direct
+      #"storage":
+      #  # TODO(john): be able to integrate with lots of storage providers
+      #  drive:
+      #    # Google drive
+      #    #impl: internal
+      #  onedrive:
+      #    # MS Onedrive
+      #    #impl: internal
+      #  s3:
+      #    # Amazon S3
+      #    #impl: internal
   gateway:
     # The gateway is just an ordinary forward proxy:
     #

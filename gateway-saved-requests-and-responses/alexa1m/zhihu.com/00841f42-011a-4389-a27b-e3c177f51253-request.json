@@ -1,0 +1,25 @@
+{
+  "id": "00841f42-011a-4389-a27b-e3c177f51253",
+  "timestamp": 0,
+  "url": "https://zhihu.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "zhihu.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "bd7f9cca-f415-45ec-b6ec-f792ede74f07"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "63c4dc58-7ac8-4f3e-b673-15e4acc3aae4",
+  "timestamp": 0,
+  "url": "https://qq.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "qq.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "e7e17972-dfce-4376-aeca-5c38d029293d"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "5dc3a24b-489d-4bb5-93bd-88a74cbd52b0",
+  "timestamp": 0,
+  "url": "https://facebook.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "facebook.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "6605b722-2618-43e2-8162-7222c1a4fc7b"
+    ]
+  }
+}

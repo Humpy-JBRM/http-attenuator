@@ -131,17 +131,17 @@ config:
             retries: 3
             timeout_millis: 10000
         rule: random
-      "storage":
-        # TODO(john): be able to integrate with lots of storage providers
-        drive:
-          # Google drive
-          impl: internal
-        onedrive:
-          # MS Onedrive
-          impl: internal
-        s3:
-          # Amazon S3
-          impl: internal
+      #"storage":
+      #  # TODO(john): be able to integrate with lots of storage providers
+      #  drive:
+      #    # Google drive
+      #    #impl: internal
+      #  onedrive:
+      #    # MS Onedrive
+      #    #impl: internal
+      #  s3:
+      #    # Amazon S3
+      #    #impl: internal
   gateway:
     # The gateway is just an ordinary forward proxy:
     #

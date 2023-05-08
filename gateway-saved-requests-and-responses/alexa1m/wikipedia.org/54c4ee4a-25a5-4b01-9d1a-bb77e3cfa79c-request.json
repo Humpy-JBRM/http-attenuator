@@ -1,0 +1,25 @@
+{
+  "id": "54c4ee4a-25a5-4b01-9d1a-bb77e3cfa79c",
+  "timestamp": 0,
+  "url": "https://wikipedia.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Backend": [
+      "wikipedia.org"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "825ed1d4-9928-4436-b6e5-5f903385623b"
+    ]
+  }
+}

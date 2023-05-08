@@ -50,6 +50,9 @@ func GetServiceMap() ServiceMap {
 					continue
 				}
 
+				if backendConfig == nil {
+					continue
+				}
 				backend, err := NewBackendFromConfig(serviceName, label, backendConfig.(map[string]interface{}))
 				if err != nil {
 					panic(err)

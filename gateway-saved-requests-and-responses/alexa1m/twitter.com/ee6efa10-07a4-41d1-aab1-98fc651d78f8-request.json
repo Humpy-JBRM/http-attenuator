@@ -1,0 +1,25 @@
+{
+  "id": "ee6efa10-07a4-41d1-aab1-98fc651d78f8",
+  "timestamp": 0,
+  "url": "https://twitter.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "twitter.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "3834f7b3-a200-47ef-93e0-5b1c73faa00f"
+    ]
+  }
+}

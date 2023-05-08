@@ -1,0 +1,25 @@
+{
+  "id": "7f2ae8cf-364e-4c88-b2ae-225b7ace0c61",
+  "timestamp": 0,
+  "url": "https://baidu.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "baidu.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "3ec32b26-5a15-49e3-ab97-8ea259e958b3"
+    ]
+  }
+}

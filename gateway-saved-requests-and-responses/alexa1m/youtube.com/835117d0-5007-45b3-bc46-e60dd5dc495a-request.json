@@ -1,0 +1,25 @@
+{
+  "id": "835117d0-5007-45b3-bc46-e60dd5dc495a",
+  "timestamp": 0,
+  "url": "https://youtube.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "youtube.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "14414bb2-b143-4b6e-90a5-2fffb580f81e"
+    ]
+  }
+}

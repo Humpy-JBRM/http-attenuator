@@ -1,0 +1,67 @@
+{
+  "id": "833e8d85-6038-4197-8ef8-467cc5d9fba6",
+  "url": "",
+  "headers": {
+    "Alt-Svc": [
+      "h3=\":443\"; ma=86400"
+    ],
+    "Cache-Control": [
+      "private, no-cache, no-store, must-revalidate"
+    ],
+    "Content-Security-Policy": [
+      "default-src data: blob: 'self' https://*.fbsbx.com 'unsafe-inline' *.facebook.com *.fbcdn.net 'unsafe-eval';script-src *.facebook.com *.fbcdn.net *.facebook.net *.google-analytics.com *.google.com 127.0.0.1:* 'unsafe-inline' blob: data: 'self' connect.facebook.net 'unsafe-eval';style-src fonts.googleapis.com *.fbcdn.net data: *.facebook.com 'unsafe-inline';connect-src *.facebook.com facebook.com *.fbcdn.net *.facebook.net wss://*.facebook.com:* wss://*.whatsapp.com:* wss://*.fbcdn.net attachment.fbsbx.com ws://localhost:* blob: *.cdninstagram.com 'self' http://localhost:3103 wss://gateway.facebook.com wss://edge-chat.facebook.com wss://snaptu-d.facebook.com wss://kaios-d.facebook.com/ v.whatsapp.net *.fbsbx.com *.fb.com;font-src data: *.gstatic.com *.facebook.com *.fbcdn.net *.fbsbx.com;img-src *.fbcdn.net *.facebook.com data: https://*.fbsbx.com *.tenor.co media.tenor.com facebook.com *.cdninstagram.com fbsbx.com fbcdn.net *.giphy.com connect.facebook.net *.carriersignal.info blob: android-webview-video-poster: googleads.g.doubleclick.net www.googleadservices.com *.whatsapp.net *.fb.com *.oculuscdn.com;media-src *.cdninstagram.com blob: *.fbcdn.net *.fbsbx.com www.facebook.com *.facebook.com https://*.giphy.com data:;frame-src *.doubleclick.net *.google.com *.facebook.com www.googleadservices.com *.fbsbx.com fbsbx.com data: www.instagram.com *.fbcdn.net https://paywithmybank.com https://sandbox.paywithmybank.com;worker-src blob: *.facebook.com data:;block-all-mixed-content;upgrade-insecure-requests;"
+    ],
+    "Content-Type": [
+      "text/html; charset=\"utf-8\""
+    ],
+    "Cross-Origin-Opener-Policy": [
+      "same-origin-allow-popups"
+    ],
+    "Date": [
+      "Sun, 07 May 2023 15:57:15 GMT"
+    ],
+    "Document-Policy": [
+      "force-load-at-top"
+    ],
+    "Expires": [
+      "Sat, 01 Jan 2000 00:00:00 GMT"
+    ],
+    "Permissions-Policy": [
+      "accelerometer=()"
+    ],
+    "Pragma": [
+      "no-cache"
+    ],
+    "Report-To": [
+      "{\"max_age\":259200,\"endpoints\":[{\"url\":\"https:\\/\\/www.facebook.com\\/ajax\\/browser_error_reports\\/?device_level=unknown\"}]}"
+    ],
+    "Set-Cookie": [
+      "fr=04vhlwG8zaU9tAEpC..BkV8pb.Ck.AAA.0.0.BkV8pb.AWXPArVCj2E; expires=Sat, 05-Aug-2023 15:57:14 GMT; Max-Age=7775999; path=/; domain=.facebook.com; secure; httponly",
+      "sb=W8pXZL1D2vmxHxyAazEEEhVN; expires=Tue, 06-May-2025 15:57:15 GMT; Max-Age=63072000; path=/; domain=.facebook.com; secure; httponly"
+    ],
+    "Strict-Transport-Security": [
+      "max-age=15552000; preload"
+    ],
+    "Vary": [
+      "Accept-Encoding"
+    ],
+    "X-Content-Type-Options": [
+      "nosniff"
+    ],
+    "X-Fb-Debug": [
+      "9n3mm4b1BU0BMA+dmpJwOF0uZPHWI4YSKgZZtWfS1v7tUoFsSaUg4qO/y9fDjRVhdentTzfGUzbiX0z1Vc0AwA=="
+    ],
+    "X-Fb-Rlafr": [
+      "0"
+    ],
+    "X-Frame-Options": [
+      "DENY"
+    ],
+    "X-Xss-Protection": [
+      "0"
+    ]
+  },
+  "status_code": 200,
+  "duration_millis": 0,
+  "timestamp": 0
+}

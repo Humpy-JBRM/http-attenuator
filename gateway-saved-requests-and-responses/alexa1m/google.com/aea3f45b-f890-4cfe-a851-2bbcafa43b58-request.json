@@ -1,0 +1,25 @@
+{
+  "id": "aea3f45b-f890-4cfe-a851-2bbcafa43b58",
+  "timestamp": 0,
+  "url": "https://google.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "google.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "5e2ab612-87bb-44ff-b54f-d32e8b7800d3"
+    ]
+  }
+}

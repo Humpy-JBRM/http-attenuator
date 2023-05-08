@@ -1,0 +1,25 @@
+{
+  "id": "4d209e68-6ac2-4804-9a4c-7d4ba8eade4e",
+  "timestamp": 0,
+  "url": "https://amazon.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "amazon.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "be0b7f3d-09b3-4cf6-97fa-aff04287ce13"
+    ]
+  }
+}

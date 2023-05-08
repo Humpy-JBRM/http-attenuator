@@ -1,0 +1,25 @@
+{
+  "id": "fd2cf76c-11de-4d68-ae49-dec404d163da",
+  "timestamp": 0,
+  "url": "https://bilibili.com",
+  "headers": {
+    "Accept": [
+      "*/*"
+    ],
+    "User-Agent": [
+      "curl/7.86.0"
+    ],
+    "X-Baultmonkey-Backend": [
+      "bilibili.com"
+    ],
+    "X-Faultmonkey-Api-Customer": [
+      "(unknown)"
+    ],
+    "X-Faultmonkey-Upstream": [
+      "alexa1m"
+    ],
+    "X-Request-Id": [
+      "8abe8824-a05a-438c-bd99-efbe3cf0cb2f"
+    ]
+  }
+}

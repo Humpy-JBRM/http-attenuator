@@ -1,4 +1,4 @@
-package evt
+package data
 
 import "regexp"
 

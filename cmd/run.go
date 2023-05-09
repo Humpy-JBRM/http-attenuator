@@ -4,6 +4,7 @@ import (
 	"http-attenuator/api"
 	"http-attenuator/broker"
 	"http-attenuator/data"
+	"http-attenuator/evt"
 	"http-attenuator/server"
 	"log"
 
@@ -50,6 +51,18 @@ func RunRun(cmd *cobra.Command, args []string) {
 	// import loops.  This needs to be fixed.
 	for _, upstreamService := range appConfig.Config.Broker.UpstreamFromConfig {
 		upstreamService.HandlerFunc = broker.GetServiceBroker().Handle
+	}
+
+	// Finally, deal with the health checks
+	for _, upstreamService := range appConfig.Config.Broker.UpstreamFromConfig {
+		for _, upstreamBackend := range upstreamService.Backends {
+			healthCheck, err := evt.ParseEVT(upstreamBackend.Healthcheck)
+			if err != nil {
+				log.Fatal(err)
+			}
+			upstreamBackend.SetHealthcheck(healthCheck)
+			upstreamBackend.Start()
+		}
 	}
 
 	ginRouter, err := api.NewRouter()

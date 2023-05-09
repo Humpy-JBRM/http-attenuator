@@ -122,6 +122,7 @@ config:
             impl: proxy
             # The URL to forward-proxy the request to
             url: https://www.bing.com
+            healthcheck: tcp www.bing.com:443
             # Any URL (or POST) params that we want to map
             params:
               # Keep the 'q=' parameter exactly as it is, i.e.
@@ -145,6 +146,7 @@ config:
           google:
             impl: proxy
             url: https://www.google.com
+            healthcheck: tcp www.google.com:443
             params:
               # Keep the 'q=' parameter exactly as it is, i.e.
               # we don't need to rename it or map it in any way

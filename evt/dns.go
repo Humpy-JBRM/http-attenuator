@@ -2,12 +2,14 @@ package evt
 
 import (
 	"fmt"
+	"http-attenuator/data"
+	"log"
 	"net"
 	"time"
 )
 
 type DNSCheck struct {
-	EVTImpl
+	data.EVTImpl
 
 	// TODO(john): support dns records other than A
 	recordType string
@@ -15,17 +17,18 @@ type DNSCheck struct {
 	name string
 }
 
-func NewDNSCheck(recordType string, name string) EVT {
+func NewDNSCheck(recordType string, name string) data.EVT {
 	return &DNSCheck{
-		EVTImpl: EVTImpl{},
+		recordType: recordType,
+		name:       name,
 	}
 }
 
 func (d *DNSCheck) GetName() string {
-	return fmt.Sprintf("%s: %s", d.evtType, d.name)
+	return fmt.Sprintf("%s-%s", d.GetType(), d.name)
 }
 
-func (d *DNSCheck) Run() EVTResult {
+func (d *DNSCheck) Run() data.EVTResult {
 	// Do the lookup
 	// TODO(john): records other than A / AAAA
 	now := time.Now().UTC().UnixMilli()
@@ -37,8 +40,9 @@ func (d *DNSCheck) Run() EVTResult {
 	}()
 	ips, err := net.LookupIP(d.name)
 	if err != nil {
-		evtErrors.WithLabelValues(d.GetType(), d.GetName(), GetErrorClassifier().Classify(err)).Inc()
-		return NewEVTResult(
+		log.Printf("FAIL %s: %s", d.GetName(), err.Error())
+		evtErrors.WithLabelValues(d.GetType(), d.GetName(), data.GetErrorClassifier().Classify(err)).Inc()
+		return data.NewEVTResult(
 			err,
 			time.Now().UTC().UnixMilli()-now,
 		)
@@ -46,14 +50,14 @@ func (d *DNSCheck) Run() EVTResult {
 
 	if len(ips) == 0 {
 		evtErrors.WithLabelValues(d.GetType(), d.GetName(), "notfound").Inc()
-		return NewEVTResult(
+		return data.NewEVTResult(
 			fmt.Errorf("%s: no matching records", d.name),
 			time.Now().UTC().UnixMilli()-now,
 		)
 	}
 
 	// This test passed
-	return NewEVTResult(
+	return data.NewEVTResult(
 		nil,
 		time.Now().UTC().UnixMilli()-now,
 	)

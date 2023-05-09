@@ -10,6 +10,17 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var upstreamBackends = promauto.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Namespace: "faultmonkey",
+		Name:      "upstream_backends",
+		Help:      "The upstreams and backends, along with their state",
+	},
+	[]string{"upstream", "backend", "state"},
 )
 
 type UpstreamBackend interface {
@@ -21,6 +32,10 @@ type UpstreamBackend interface {
 	// Dynamic config
 	Disable() error
 	Enable() error
+
+	// For keeping state up to date
+	GetState() BackendState
+	SetState(state BackendState)
 
 	// For starting and stopping the healthcheck.
 	// TODO(john): these should be a separate interface
@@ -57,12 +72,13 @@ func (s BackendState) String() string {
 
 type UpstreamBackendImpl struct {
 	// this is backpatched
-	backendName string
-	Impl        string        `yaml:"impl" json:"impl"`
-	Url         string        `yaml:"url" json:"url"`
-	Weight      int           `yaml:"weight" json:"weight"`
-	Pathology   string        `yaml:"pathology" json:"pathology"`
-	Recorder    *RecorderImpl `yaml:"recorder" json:"recorder"`
+	upstreamName string
+	backendName  string
+	Impl         string        `yaml:"impl" json:"impl"`
+	Url          string        `yaml:"url" json:"url"`
+	Weight       int           `yaml:"weight" json:"weight"`
+	Pathology    string        `yaml:"pathology" json:"pathology"`
+	Recorder     *RecorderImpl `yaml:"recorder" json:"recorder"`
 
 	// This is used to override the default cost for this upstream.
 	//
@@ -134,6 +150,15 @@ func (u *UpstreamBackendImpl) Stop() {
 	u.healthcheckStop <- true
 }
 
+func (u *UpstreamBackendImpl) GetState() BackendState {
+	return u.State
+}
+
+func (u *UpstreamBackendImpl) SetState(state BackendState) {
+	u.State = state
+	upstreamBackends.WithLabelValues(u.upstreamName, u.GetName(), state.String()).Set(1)
+}
+
 func (u *UpstreamBackendImpl) healthcheckWorker() {
 	if u.healthCheckImpl == nil {
 		return
@@ -152,7 +177,9 @@ func (u *UpstreamBackendImpl) healthcheckWorker() {
 		if u.State != DISABLED {
 			u.healthcheckResult = u.healthCheckImpl.Run()
 			if u.healthcheckResult.Error() != nil {
-				u.State = UNHEALTHY
+				u.SetState(UNHEALTHY)
+			} else {
+				u.SetState(HEALTHY)
 			}
 		}
 		time.Sleep(*u.healthCheckInterval)

@@ -87,6 +87,7 @@ func (u *UpstreamImpl) Backpatch() error {
 	totalWeight := 0
 	for backendName, upstreamBackend := range u.Backends {
 		upstreamBackend.backendName = backendName
+		upstreamBackend.upstreamName = u.GetName()
 		totalWeight += upstreamBackend.Weight
 	}
 	u.backendCDF = make([]HasCDF, 0)

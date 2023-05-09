@@ -12,35 +12,35 @@ import (
 )
 
 var queueOperationsStarted = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "atat",
+	Namespace: "faultmonkey",
 	Name:      "queue_op_started",
 	Help:      "The number of operations performed",
 },
 	[]string{"function"},
 )
 var queueOperationsSuccess = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "atat",
+	Namespace: "faultmonkey",
 	Name:      "queue_op_success",
 	Help:      "The number of sucesses",
 },
 	[]string{"function"},
 )
 var queueOperationsError = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "atat",
+	Namespace: "faultmonkey",
 	Name:      "queue_op_error",
 	Help:      "The number of errors",
 },
 	[]string{"function"},
 )
 var messagesQueued = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "atat",
+	Namespace: "faultmonkey",
 	Name:      "messages_queued",
 	Help:      "The number of messages queued (keyed by topic)",
 },
 	[]string{"topic"},
 )
 var messagesfetched = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "atat",
+	Namespace: "faultmonkey",
 	Name:      "messages_fetched",
 	Help:      "The number of messages fetched from a queue (keyed by topic)",
 },

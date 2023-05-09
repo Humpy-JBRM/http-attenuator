@@ -18,7 +18,7 @@ import (
 )
 
 var queueAttenuatedWaitMillis = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "atat",
+	Namespace: "faultmonkey",
 	Name:      "queue_attenuated_wait_millis",
 	Help:      "The number of milliseconds we spend waiting for attenuation",
 },

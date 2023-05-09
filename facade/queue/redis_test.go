@@ -13,7 +13,7 @@ func TestRedisQueue(t *testing.T) {
 	// config.Config().SetString(util.CONF_QUEUE_IMPL, "redis")
 	// config.Config().SetString(util.CONF_REDIS_URL, "127.0.0.1:6379")
 	// redis.InitialiseRedis()
-	if url, _ := config.Config().GetString(data.CONF_QUEUE_REDIS_URL); url == "" {
+	if url, _ := config.Config().GetString(data.CONF_REDIS_HOST); url == "" {
 		t.Skip()
 	}
 

@@ -82,7 +82,7 @@ func QueueFactory() QueueManagerFactory {
 		queueManagerFactory = &queueManagerFactoryImpl{}
 
 		if qType, _ := config.Config().GetString(data.CONF_QUEUE_IMPL); qType == string(QUEUE_REDIS) {
-			if url, _ := config.Config().GetString(data.CONF_QUEUE_REDIS_URL); url != "" {
+			if url, _ := config.Config().GetString(data.CONF_REDIS_HOST); url != "" {
 				queueManagerFactory.(*queueManagerFactoryImpl).qType = QUEUE_REDIS
 				util.DoDebug(fmt.Sprintf("QueueFactory(): Setting type to %s (%s)", QUEUE_REDIS, url))
 			}

@@ -29,7 +29,6 @@ const (
 	CONF_QUEUE_REDIS_MAX_ACTIVE   = "config.queue.redis.max.active"
 	CONF_QUEUE_REDIS_MAX_IDLE     = "config.queue.redis.max.idle"
 	CONF_QUEUE_REDIS_PASSWORD     = "config.queue.redis.password"
-	CONF_QUEUE_REDIS_URL          = "config.queue.redis.url"
 	CONF_REDIS_HOST               = "config.redis.host"
 	CONF_REDIS_POOLSIZE           = "config.redis.pool_size"
 	CONF_REDIS_TIMEOUT            = "config.redis.timeout"

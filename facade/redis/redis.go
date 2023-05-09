@@ -44,9 +44,9 @@ func NewMutexQueue(name string) *redsync.Mutex {
 }
 
 func InitialiseRedisQueue() {
-	server, err := config.Config().GetString(data.CONF_QUEUE_REDIS_URL)
+	server, err := config.Config().GetString(data.CONF_REDIS_HOST)
 	if err != nil || server == "" {
-		log.Fatalf("FATAL|InitialiseRedisQueue()|'%s' not set|%v", data.CONF_QUEUE_REDIS_URL, err)
+		log.Fatalf("FATAL|InitialiseRedisQueue()|'%s' not set|%v", data.CONF_REDIS_HOST, err)
 	}
 
 	// Default values
@@ -55,8 +55,8 @@ func InitialiseRedisQueue() {
 		log.Fatalf("FATAL|InitialiseRedisQueue()|Could not read redis password from '%s'|%v", data.CONF_QUEUE_REDIS_PASSWORD, err)
 	}
 
-	maxIdle := 12000
-	maxActive := 12000
+	maxIdle := 600
+	maxActive := 10
 	idleTimeout := 15 * time.Second
 	if idle, err := config.Config().GetInt(data.CONF_QUEUE_REDIS_MAX_IDLE); err != nil && idle > 0 {
 		maxIdle = int(idle)

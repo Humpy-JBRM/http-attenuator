@@ -21,6 +21,7 @@ const (
 	CONF_GATEWAY_RECORD           = "config.gateway.record"
 	CONF_GATEWAY_RECORD_REQUESTS  = "config.gateway.record.requests"
 	CONF_GATEWAY_RECORD_RESPONSES = "config.gateway.record.responses"
+	CONF_KEYVALUE_IMPL            = "config.keyvalue.impl"
 	CONF_PATHOLOGIES              = "config.pathologies"
 	CONF_PROXY_ENABLE             = "config.proxy.enable"
 	CONF_PROXY_LISTEN             = "config.proxy.listen"

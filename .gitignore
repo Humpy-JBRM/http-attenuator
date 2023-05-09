@@ -24,3 +24,5 @@ go.work
 __debug_bin
 gateway-saved-requests-and-responses
 broker-search
+apache-drill-1.21.1
+

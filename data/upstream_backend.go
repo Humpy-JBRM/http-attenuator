@@ -243,6 +243,11 @@ func (u *UpstreamBackendImpl) Handle(c *gin.Context) {
 		)
 		gwr.WhenMillis = now
 		gwr.DurationMillis = latency
+
+		// These additional fields make it easier to use with Apache Drill
+		gwr.DisplayUrl = request.URL.String()
+		gwr.Backend = request.Header.Get(HEADER_X_FAULTMONKEY_BACKEND)
+		gwr.Upstream = request.Header.Get(HEADER_X_FAULTMONKEY_UPSTREAM)
 		u.Recorder.SaveResponse(gwr)
 	}
 	defer resp.Body.Close()

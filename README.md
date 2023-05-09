@@ -18,8 +18,6 @@ Http-attenuator runs as a API gateway providing:
 
     - recording / saving requests and responses
 
-(@JamesThatcher: some of this might remind you of 'parrot')
-
 ## MVP
     - [tick] forward proxy mode
       Needs integration with saving req/resp (a la BURP)

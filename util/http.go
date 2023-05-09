@@ -4,22 +4,42 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"time"
 )
 
-func HttpGet(url string, headers http.Header) (int, []byte, http.Header, error) {
-	var netClient = &http.Client{
-		Timeout: time.Second * 60,
-	}
+var defaultDialer = &net.Dialer{
+	Timeout:   2 * time.Second, // TODO(john): get this from config
+	KeepAlive: 2 * time.Second, // TODO(john): get this from config
+}
 
+func GetHttpClient(localAddress net.Addr) *http.Client {
+	dialer := defaultDialer
+	if localAddress != nil {
+		// So we can reuse local addresses to avoid running out of
+		// handles
+		dialer.LocalAddr = localAddress
+	}
+	tr := &http.Transport{
+		Dial:                dialer.Dial,
+		TLSHandshakeTimeout: 5 * time.Second, // TODO(john): get this from config
+	}
+	client := http.Client{
+		Transport: tr,
+		Timeout:   time.Second * 120, // TODO(john): get this from config
+	}
+	return &client
+}
+
+func HttpGet(url string, headers http.Header) (int, []byte, http.Header, error) {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return http.StatusBadRequest, []byte{}, http.Header{}, err
 	}
 	request.Header = headers
 
-	response, err := netClient.Do(request)
+	response, err := GetHttpClient(nil).Do(request)
 	if err != nil {
 		return http.StatusBadRequest, []byte{}, http.Header{}, err
 	}
@@ -39,13 +59,6 @@ func doNotRedirect(req *http.Request, via []*http.Request) error {
 }
 
 func HttpPost(theUrl string, payload []byte, headers http.Header) (int, []byte, http.Header, error) {
-	var netClient = &http.Client{
-		// TODO(john): cookies
-		// Jar:     GCookieJar,
-		Timeout:       time.Second * 60,
-		CheckRedirect: doNotRedirect,
-	}
-
 	// Authenticate
 	var request *http.Request
 	var err error
@@ -55,7 +68,7 @@ func HttpPost(theUrl string, payload []byte, headers http.Header) (int, []byte, 
 	}
 	request.Header = headers
 
-	response, err := netClient.Do(request)
+	response, err := GetHttpClient(nil).Do(request)
 	if err != nil {
 		code := 0
 		if response != nil {

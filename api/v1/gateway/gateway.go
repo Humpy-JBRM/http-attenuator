@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"http-attenuator/data"
+	"http-attenuator/util"
 	"io"
 	"log"
 	"net/http"
@@ -101,7 +102,7 @@ func GatewayHandler(c *gin.Context) {
 	// Make the request
 	//
 	// TODO(john): put it through the attenuator / circuit breaker etc
-	client := http.Client{}
+	client := util.GetHttpClient(nil)
 	resp, err := client.Do(&request)
 	if err != nil {
 		log.Printf("%s: %s", hostAndQuery, err.Error())

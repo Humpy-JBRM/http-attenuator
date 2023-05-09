@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"http-attenuator/data"
+	"http-attenuator/util"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -133,12 +134,8 @@ func (c *HttpClientImpl) Do(ctx context.Context, req *data.GatewayRequest) (*dat
 
 	// Wait on the attenuator
 
-	var netClient = &http.Client{
-		// TODO(john): CheckRedirect func(req *Request, via []*Request) error
-		// TODO(john): Jar CookieJar
-		// TODO(john): Transport
-		Timeout: time.Duration(c.TimeoutMillis * int64(time.Millisecond)),
-	}
+	netClient := util.GetHttpClient(nil)
+	netClient.Timeout = time.Duration(c.TimeoutMillis * int64(time.Millisecond))
 
 	httpClientRequests.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Inc()
 	httpClientRequestBytes.WithLabelValues(req.GetUrl().Host, req.GetRequest().Method, req.GetUrl().Path).Add(float64(len(req.Body)))
